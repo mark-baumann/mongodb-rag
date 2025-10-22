@@ -7,8 +7,8 @@ export async function login(): Promise<{ browser: Browser; page: Page }> {
   console.log("🔐 Öffne Login-Seite ...");
   await page.goto("https://oc-digital.de", { waitUntil: "domcontentloaded" });
 
-  const username = "750718@fom-net.de";
-  const password = "MustangMustang_<3";
+  const username = "";
+  const password = "";
 
   await page.fill("#userNameInput", username);
   await page.fill("#passwordInput", password);

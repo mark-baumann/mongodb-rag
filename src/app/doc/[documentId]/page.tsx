@@ -24,9 +24,7 @@ const DocumentPage = async ({ params }: DocumentPageProps) => {
     return notFound();
   }
 
-  const viewerUrl = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(
-    blob.url
-  )}`;
+  const viewerUrl = blob.url;
 
   return (
     <div style={{ height: '100vh', width: '100vw' }}>
