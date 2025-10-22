@@ -6,7 +6,9 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "RAG using MongoDB",
-  description: "RAG using MongoDB Atlas & OpenAI"
+  description: "RAG using MongoDB Atlas & OpenAI",
+  manifest: "/manifest.json",
+  themeColor: "#000000",
 };
 
 export default function RootLayout({

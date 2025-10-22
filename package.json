@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@langchain/community": "^0.0.30",
     "@langchain/openai": "^0.0.16",
     "@vercel/blob": "^0.21.0",
