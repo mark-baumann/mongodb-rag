@@ -6,8 +6,8 @@ const DOCUMENT_PREFIX = 'documents/';
 
 type DocumentListItem = {
   name: string;
-  directUrl: string;
-  viewerUrl: string;
+  url: string;
+  documentId: string;
 };
 
 export const dynamic = 'force-dynamic';
@@ -21,31 +21,16 @@ const Home = async () => {
     documents = blobs
       .filter((blob) => blob.pathname.startsWith(DOCUMENT_PREFIX))
       .map((blob) => {
-        const documentName = blob.pathname.replace(DOCUMENT_PREFIX, '');
-        const rawUrl = blob.url ?? blob.downloadUrl;
+        const pathParts = blob.pathname.replace(DOCUMENT_PREFIX, '').split('/');
+        if (pathParts.length < 2) return null;
 
-        if (!rawUrl) {
-          return null;
-        }
-
-        let publicUrl = rawUrl;
-
-        if (rawUrl.startsWith('blob:')) {
-          try {
-            const parsed = new URL(rawUrl);
-            publicUrl = `https://blob.vercel-storage.com${parsed.pathname}`;
-          } catch (error) {
-            console.error('Failed to normalise blob URL', error);
-            return null;
-          }
-        }
-
-        const viewerUrl = `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(publicUrl)}`;
+        const [documentId, ...nameParts] = pathParts;
+        const name = nameParts.join('/');
 
         return {
-          name: documentName,
-          directUrl: publicUrl,
-          viewerUrl,
+          name,
+          url: `/doc/${documentId}`,
+          documentId,
         };
       })
       .filter((item): item is DocumentListItem => Boolean(item));
@@ -61,14 +46,14 @@ const Home = async () => {
         <h1 className='text-3xl font-bold mb-6 text-gray-900'>📚 Dokumentenübersicht</h1>
         {documents.length > 0 ? (
           <ul className='space-y-3'>
-            {documents.map(({ name, viewerUrl, directUrl }) => (
+            {documents.map(({ name, url, documentId }) => (
               <li
-                key={directUrl}
+                key={documentId}
                 className='flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between'
               >
                 <span className='font-medium text-gray-800 truncate'>{name}</span>
                 <a
-                  href={viewerUrl}
+                  href={url}
                   target='_blank'
                   rel='noopener noreferrer'
                   className='text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap'

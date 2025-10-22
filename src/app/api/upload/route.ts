@@ -34,9 +34,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Uploaded file is not in the expected format' }, { status: 400 });
     }
 
+    const documentId = randomUUID();
     const originalName = sanitizeFileName(uploadedFile.name || 'document.pdf');
     const fileName = originalName.endsWith('.pdf') ? originalName : `${originalName}.pdf`;
-    const fileKey = `${DOCUMENT_PREFIX}${Date.now()}-${randomUUID()}-${fileName}`;
+    const fileKey = `${DOCUMENT_PREFIX}${documentId}/${fileName}`;
 
     const fileBuffer = Buffer.from(await uploadedFile.arrayBuffer());
 
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
     const metadata = chunks.map(() => ({
       source: blob.url,
       fileName,
+      documentId,
     }));
 
     await MongoDBAtlasVectorSearch.fromTexts(
@@ -72,6 +74,7 @@ export async function POST(req: NextRequest) {
           name: fileName,
           url: blob.url,
           pathname: blob.pathname,
+          documentId,
         },
       },
       { status: 200 }
