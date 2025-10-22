@@ -10,6 +10,7 @@ type DocumentListItem = {
   name: string;
   url: string;
   documentId: string;
+  directUrl: string;
 };
 
 export const dynamic = 'force-dynamic';
@@ -33,6 +34,7 @@ const Home = async () => {
           name,
           url: `/doc/${documentId}`,
           documentId,
+          directUrl: blob.url,
         };
       })
       .filter((item): item is DocumentListItem => Boolean(item));
@@ -45,20 +47,20 @@ const Home = async () => {
       <NavBar />
 
       <div className='max-w-5xl mx-auto p-8'>
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
           <h1 className='text-3xl font-bold text-gray-900'>📚 Dokumentenübersicht</h1>
           {documents.length > 0 && <DeleteAllButton />}
         </div>
         {documents.length > 0 ? (
           <ul className='space-y-3'>
-            {documents.map(({ name, url, documentId }) => (
+            {documents.map(({ name, directUrl, documentId }) => (
               <li
                 key={documentId}
                 className='flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between'
               >
                 <span className='font-medium text-gray-800 truncate'>{name}</span>
                 <a
-                  href={url}
+                  href={directUrl}
                   target='_blank'
                   rel='noopener noreferrer'
                   className='text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap'
