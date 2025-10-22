@@ -5,7 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Chatter",
+  title: "RAG using MongoDB",
   description: "RAG using MongoDB Atlas & OpenAI"
 };
 
