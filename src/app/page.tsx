@@ -1,16 +1,12 @@
 import React from 'react';
 import { list } from '@vercel/blob';
 import NavBar from './component/navbar';
-import { FileText } from 'lucide-react'; // optional für schöne Icons
 
 const DOCUMENT_PREFIX = 'documents/';
 
 type DocumentListItem = {
   name: string;
-  publicUrl: string;
   viewerUrl: string;
-  size?: number;
-  createdAt?: string;
 };
 
 export const dynamic = 'force-dynamic';
@@ -33,10 +29,7 @@ const Home = async () => {
 
         return {
           name: documentName,
-          publicUrl,
           viewerUrl: `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(publicUrl)}`,
-          size: blob.size,
-          createdAt: blob.uploadedAt ?? '',
         };
       });
   } catch (error) {
@@ -44,65 +37,31 @@ const Home = async () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className='min-h-screen bg-gray-50'>
       <NavBar />
 
-      <div className="max-w-5xl mx-auto p-8">
-        {/* Titel schwarz */}
-        <h1 style={{ color: 'black' }} className="text-3xl font-bold mb-6">
-          📚 Dokumentenübersicht
-        </h1>
-
+      <div className='max-w-5xl mx-auto p-8'>
+        <h1 className='text-3xl font-bold mb-6 text-gray-900'>📚 Dokumentenübersicht</h1>
         {documents.length > 0 ? (
-          <div className="overflow-x-auto shadow border rounded-lg bg-white">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                    Dokument
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                    Größe
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-700">
-                    Datum
-                  </th>
-                  <th className="px-6 py-3 text-right text-sm font-semibold text-gray-700">
-                    Aktion
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {documents.map(({ name, viewerUrl, size, createdAt }) => (
-                  <tr key={name} className="hover:bg-gray-50 transition">
-                    <td className="px-6 py-4 flex items-center space-x-3">
-                      <FileText className="w-5 h-5 text-blue-500" />
-                      <span className="font-medium text-gray-800">{name}</span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {size ? `${(size / 1024).toFixed(1)} KB` : '—'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">
-                      {createdAt ? new Date(createdAt).toLocaleDateString() : '—'}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {/* Nur "Ansehen" – Download wurde entfernt */}
-                      <a
-                        href={viewerUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        Ansehen
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className='document-grid'>
+            {documents.map(({ name, viewerUrl }) => (
+              <a
+                key={viewerUrl}
+                href={viewerUrl}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='document-card'
+                title={`Open ${name} in Google Viewer`}
+              >
+                <span className='document-card-icon' aria-hidden='true'>
+                  📄
+                </span>
+                <span className='document-card-title'>{name}</span>
+              </a>
+            ))}
           </div>
         ) : (
-          <p className="text-gray-600 mt-4">Noch keine Dokumente hochgeladen.</p>
+          <p className='text-gray-600 mt-4'>Noch keine Dokumente hochgeladen.</p>
         )}
       </div>
     </div>
