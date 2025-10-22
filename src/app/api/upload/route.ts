@@ -34,25 +34,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Uploaded file is not in the expected format' }, { status: 400 });
     }
 
+    console.log('Starting upload process...');
+
     const documentId = randomUUID();
     const originalName = sanitizeFileName(uploadedFile.name || 'document.pdf');
     const fileName = originalName.endsWith('.pdf') ? originalName : `${originalName}.pdf`;
     const fileKey = `${DOCUMENT_PREFIX}${documentId}/${fileName}`;
 
+    console.log(`Uploading file to Vercel Blob with key: ${fileKey}`)
     const fileBuffer = Buffer.from(await uploadedFile.arrayBuffer());
 
     const blob = await put(fileKey, fileBuffer, {
       access: 'public',
       contentType: uploadedFile.type || 'application/pdf',
     });
+    console.log('File uploaded to Vercel Blob:', blob.url);
 
+    console.log('Parsing PDF...');
     const { text } = await pdf(fileBuffer);
+    console.log('PDF parsed successfully.');
 
+    console.log('Splitting text into chunks...');
     const chunks = await new CharacterTextSplitter({
       separator: '\n',
       chunkSize: 1000,
       chunkOverlap: 100,
     }).splitText(text);
+    console.log(`Text split into ${chunks.length} chunks.`);
 
     const metadata = chunks.map(() => ({
       source: blob.url,
@@ -60,13 +68,16 @@ export async function POST(req: NextRequest) {
       documentId,
     }));
 
+    console.log('Creating embeddings and saving to MongoDB...');
     await MongoDBAtlasVectorSearch.fromTexts(
       chunks,
       metadata,
       getEmbeddingsTransformer(),
       searchArgs()
     );
+    console.log('Embeddings created and saved to MongoDB.');
 
+    console.log('Upload process completed successfully.');
     return NextResponse.json(
       {
         message: 'Uploaded to MongoDB and stored in Blob',
@@ -81,6 +92,7 @@ export async function POST(req: NextRequest) {
     );
   } catch (error) {
     console.error('Error processing request:', error);
-    return new NextResponse('An error occurred during processing.', { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+    return new NextResponse(JSON.stringify({ message: 'An error occurred during processing.', error: errorMessage }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }

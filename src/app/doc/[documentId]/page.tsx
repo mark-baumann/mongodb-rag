@@ -25,11 +25,20 @@ const DocumentPage = async ({ params }: DocumentPageProps) => {
   }
 
   const viewerUrl = blob.url;
+  const documentName = blob.pathname.split('/').pop();
 
   return (
-    <div style={{ height: '100vh', width: '100vw' }}>
-      <iframe src={viewerUrl} style={{ border: 'none', height: '100%', width: '100%' }} />
-    </div>
+    <html>
+      <head>
+        <title>{documentName}</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
+      <body style={{ margin: 0, overflow: 'hidden' }}>
+        <div style={{ height: '100vh', width: '100vw' }}>
+          <iframe src={viewerUrl} style={{ border: 'none', height: '100%', width: '100%' }} />
+        </div>
+      </body>
+    </html>
   );
 };
 

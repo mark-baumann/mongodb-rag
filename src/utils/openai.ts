@@ -16,7 +16,7 @@ const DEFAULT_NAMESPACE = 'chatter.training_data';
 const namespace = process.env.MONGODB_NAMESPACE ?? DEFAULT_NAMESPACE;
 const [dbName, collectionName] = namespace.split('.');
 
-const getMongoClient = (): MongoClient => {
+export const getMongoClient = (): MongoClient => {
   if (cachedClient) {
     return cachedClient;
   }
@@ -33,7 +33,7 @@ const getMongoClient = (): MongoClient => {
   return cachedClient;
 };
 
-const getCollection = (): Collection => {
+export const getCollection = (): Collection => {
   if (cachedCollection) {
     return cachedCollection;
   }
