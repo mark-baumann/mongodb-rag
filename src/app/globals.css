@@ -138,19 +138,8 @@ li {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
-.document-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
 .document-card-title {
   font-size: 1rem;
   font-weight: 600;
   word-break: break-word;
-}
-
-.document-card-subtitle {
-  font-size: 0.85rem;
-  color: #64748b;
 }

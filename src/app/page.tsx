@@ -50,28 +50,21 @@ const Home = async () => {
         <h2 style={{ fontStyle: 'italic' }}>Available Documents</h2>
         {documents.length > 0 ? (
           <div className='document-grid'>
-            {documents.map(({ name, viewerUrl, publicUrl }) => {
-              const initial = name.trim().charAt(0).toUpperCase() || '📄';
-
-              return (
-                <a
-                  key={publicUrl}
-                  href={viewerUrl}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='document-card'
-                  title={`Open ${name} in Google Viewer`}
-                >
-                  <div className='document-card-icon' aria-hidden='true'>
-                    {/[A-Z0-9]/i.test(initial) ? initial : '📄'}
-                  </div>
-                  <div className='document-card-body'>
-                    <span className='document-card-title'>{name}</span>
-                    <span className='document-card-subtitle'>Preview in Google Docs Viewer</span>
-                  </div>
-                </a>
-              );
-            })}
+            {documents.map(({ name, viewerUrl, publicUrl }) => (
+              <a
+                key={publicUrl}
+                href={viewerUrl}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='document-card'
+                title={`Open ${name} in Google Viewer`}
+              >
+                <div className='document-card-icon' aria-hidden='true'>
+                  📄
+                </div>
+                <span className='document-card-title'>{name}</span>
+              </a>
+            ))}
           </div>
         ) : (
           <p>No documents uploaded yet.</p>
