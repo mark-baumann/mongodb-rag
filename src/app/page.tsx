@@ -1,34 +1,84 @@
-import React from 'react'
-import NavBar from './component/navbar'
+import React from 'react';
+import { list } from '@vercel/blob';
+import NavBar from './component/navbar';
 
+const DOCUMENT_PREFIX = 'documents/';
 
-const Home = () => {
+type DocumentListItem = {
+  name: string;
+  publicUrl: string;
+  viewerUrl: string;
+};
+
+export const dynamic = 'force-dynamic';
+
+const Home = async () => {
+  let documents: DocumentListItem[] = [];
+
+  try {
+    const { blobs } = await list({ prefix: DOCUMENT_PREFIX });
+
+    documents = blobs
+      .filter((blob) => blob.pathname.startsWith(DOCUMENT_PREFIX))
+      .map((blob) => {
+        const documentName = blob.pathname.replace(DOCUMENT_PREFIX, '');
+        const publicUrl =
+          blob.downloadUrl ??
+          (blob.url.startsWith('blob:')
+            ? `https://blob.vercel-storage.com${new URL(blob.url).pathname}`
+            : blob.url);
+
+        return {
+          name: documentName,
+          publicUrl,
+          viewerUrl: `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(publicUrl)}`,
+        };
+      });
+  } catch (error) {
+    console.error('Failed to list blobs', error);
+  }
+
   return (
     <div>
       <NavBar />
       <div className='overview-text'>
-
         <h1 style={{ fontWeight: 'bold', fontSize: '2em' }}>RAG QnA Chatbot</h1>
         <br />
-        
-        <p>With this RAG (Retrieval-Augmented Generation) application, you can quickly deploy a chatbot that is enhanced by your own data. By simply uploading any PDF file(s) of your choosing, you will be creating your own custom Questions and Answers (QnA) chatbot.</p>
-        <br />
 
-        <h2 style={{ fontStyle: 'italic' }}>Getting Started</h2>
-        <ul>
-          <li>Navigate to the &ldquo;Train&rdquo; tab above.</li>
-          <li>Here you can upload any number of PDF files you wish to ask the chatbot about, or that you wish the chatbot would consider when providing an answer.</li>
-          <li>After uploading your files, navigate to &ldquo;QnA&rdquo; tab.</li>
-          <li>In the prompt, you can now ask questions about the uploaded PDF files in natural language, and receive a response.</li>
-        </ul>
+       
 
-        <br />
+        <h2 style={{ fontStyle: 'italic' }}>Available Documents</h2>
+        {documents.length > 0 ? (
+          <div className='document-grid'>
+            {documents.map(({ name, viewerUrl, publicUrl }) => {
+              const initial = name.trim().charAt(0).toUpperCase() || '📄';
 
-        <p>This application leverages MongoDB&apos;s robust vector store capabilities. Each uploaded PDF is embedded in a vectorized format into your MongoDB Atlas cluster. The vector store efficiently organizes and indexes data, streamlining the process of generating responses and insights from the RAG model.</p>
+              return (
+                <a
+                  key={publicUrl}
+                  href={viewerUrl}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='document-card'
+                  title={`Open ${name} in Google Viewer`}
+                >
+                  <div className='document-card-icon' aria-hidden='true'>
+                    {/[A-Z0-9]/i.test(initial) ? initial : '📄'}
+                  </div>
+                  <div className='document-card-body'>
+                    <span className='document-card-title'>{name}</span>
+                    <span className='document-card-subtitle'>Preview in Google Docs Viewer</span>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        ) : (
+          <p>No documents uploaded yet.</p>
+        )}
       </div>
     </div>
+  );
+};
 
-  )
-}
-
-export default Home
+export default Home;
