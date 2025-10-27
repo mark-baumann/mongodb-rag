@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { list } from '@vercel/blob';
 import NavBar from './component/navbar';
 
@@ -48,7 +48,7 @@ const Home = async () => {
 
       <div className='max-w-5xl mx-auto p-8'>
         <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-          <h1 className='text-3xl font-bold text-gray-900'>📚 Dokumentenübersicht</h1>
+          <h1 className='text-3xl font-bold text-gray-900'>dY"s DokumentenA�bersicht</h1>
           {documents.length > 0 && <DeleteAllButton />}
         </div>
         {documents.length > 0 ? (
@@ -59,14 +59,22 @@ const Home = async () => {
                 className='flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between'
               >
                 <span className='font-medium text-gray-800 truncate'>{name}</span>
-                <a
-                  href={directUrl}
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='text-blue-600 hover:text-blue-800 font-medium whitespace-nowrap'
-                >
-                  Ansehen
-                </a>
+                <div className='flex items-center gap-3 sm:justify-end'>
+                  <a
+                    href={directUrl}
+                    target='_blank'
+                    rel='noopener noreferrer'
+                    className='inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+                  >
+                    Ansehen
+                  </a>
+                  <a
+                    href={`/doc/${documentId}/chat`}
+                    className='inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
+                  >
+                    Chatten
+                  </a>
+                </div>
               </li>
             ))}
           </ul>

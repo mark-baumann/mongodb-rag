@@ -12,7 +12,12 @@ export async function POST(req: Request) {
         const { stream, handlers } = LangChainStream();
         const body = await req.json();
         const messages: Message[] = body.messages ?? [];
-        const question = messages[messages.length - 1].content;
+        const question = messages[messages.length - 1]?.content ?? '';
+        const documentId: string | undefined = body.documentId;
+
+        if (!question) {
+            return NextResponse.json({ message: 'No question provided' }, { status: 400 });
+        }
 
         const model = new ChatOpenAI({
             temperature: 0.8,
@@ -20,18 +25,26 @@ export async function POST(req: Request) {
             callbacks: [handlers],
         });
 
-        const retriever = vectorStore().asRetriever({ 
-            "searchType": "mmr", 
-            "searchKwargs": { "fetchK": 10, "lambda": 0.25 } 
-        })
+        const retrieverFields: any = {
+            searchType: 'mmr',
+            searchKwargs: { fetchK: 10, lambda: 0.25 },
+        };
+        if (documentId) {
+            // Restrict retrieval to the selected document via metadata preFilter
+            retrieverFields.filter = { preFilter: { documentId } };
+        }
+
+        const retriever = vectorStore().asRetriever(retrieverFields);
+
         const conversationChain = ConversationalRetrievalQAChain.fromLLM(model, retriever, {
             memory: new BufferMemory({
               memoryKey: "chat_history",
             }),
-          })
+        });
+
         conversationChain.invoke({
-            "question": question
-        })
+            question,
+        });
 
         return new StreamingTextResponse(stream);
     }
