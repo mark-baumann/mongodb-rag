@@ -2,14 +2,17 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Settings2 } from 'lucide-react';
+import { Settings2, Mic } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 import { useApiKey } from './ApiKeyProvider';
 
 const NavBar: React.FC = () => {
   const { apiKey, setApiKey, isSettingsOpen, openSettings, closeSettings } = useApiKey();
   const [draftKey, setDraftKey] = useState('');
+  const [isCreatingPodcast, setIsCreatingPodcast] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
     if (isSettingsOpen) {
@@ -21,6 +24,34 @@ const NavBar: React.FC = () => {
     event.preventDefault();
     setApiKey(draftKey.trim());
     closeSettings();
+  };
+
+  const handleCreatePodcast = async () => {
+    setIsCreatingPodcast(true);
+    try {
+      const documentId = pathname.split('/').pop();
+      const response = await fetch('/api/podcast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ documentId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create podcast');
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audio.play();
+    } catch (error) {
+      console.error('Error creating podcast:', error);
+      alert('Failed to create podcast.');
+    } finally {
+      setIsCreatingPodcast(false);
+    }
   };
 
   return (
@@ -39,14 +70,27 @@ const NavBar: React.FC = () => {
             </div>
           </Link>
 
-          <button
-            type="button"
-            onClick={openSettings}
-            className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
-          >
-            <Settings2 className="h-4 w-4" />
-            Einstellungen
-          </button>
+          <div className="flex items-center gap-4">
+            {pathname.includes('/doc/') && (
+              <button
+                type="button"
+                onClick={handleCreatePodcast}
+                disabled={isCreatingPodcast}
+                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Mic className="h-4 w-4" />
+                {isCreatingPodcast ? 'Erstelle Podcast...' : 'Erstelle Podcast (Beta)'}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={openSettings}
+              className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
+            >
+              <Settings2 className="h-4 w-4" />
+              Einstellungen
+            </button>
+          </div>
         </div>
       </nav>
 

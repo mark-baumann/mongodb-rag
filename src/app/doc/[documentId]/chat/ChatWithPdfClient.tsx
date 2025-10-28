@@ -22,6 +22,7 @@ const suggestions = [
 export default function ChatWithPdfClient({ documentId, documentName, onClose }: Props) {
   const { apiKey } = useApiKey();
   const [waitingForAI, setWaitingForAI] = useState(false);
+  const formRef = useRef<HTMLFormElement | null>(null);
 
   const {
     messages,
@@ -58,37 +59,36 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
 
   const onSuggestionClick = (suggestion: string) => {
     setInput(suggestion);
-    // The form submission will be triggered by the user clicking the submit button
-    // or by pressing enter in the textarea. To automatically submit, we would need
-    // to call handleSubmit here, but that requires a form event.
-    // For now, we just populate the input.
+    setTimeout(() => {
+      formRef.current?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }, 0);
   };
 
 
   return (
-    <section className="flex h-full w-full flex-1 flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white lg:max-w-xl lg:border-l lg:border-white/10">
-      <header className="flex items-center justify-between border-b border-white/10 px-6 py-5 backdrop-blur">
+    <section className="flex h-full w-full flex-1 flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white lg:max-w-xl lg:border-l lg:border-white/10 rounded-lg">
+      <header className="flex items-center justify-between border-b border-white/10 px-4 py-3 md:px-6 md:py-5 backdrop-blur">
         <div className="min-w-0">
-          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-emerald-400">
+          <p className="text-[0.6rem] md:text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-emerald-400">
             Dokument-Chat
           </p>
-          <p className="truncate text-xl font-semibold text-white">{title}</p>
+          <p className="truncate text-lg md:text-xl font-semibold text-white">{title}</p>
         </div>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="-mr-2 rounded-full p-2 text-white/80 transition hover:bg-white/10 hover:text-white"
+            className="-mr-2 rounded-full p-2 text-white/80 transition hover:bg-white/10 hover:text-white text-2xl md:text-base"
           >
-            <X size={24} />
+            <X size={32} />
           </button>
         )}
       </header>
 
       <div className="relative flex-1 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none opacity-10 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.35),_transparent_55%)]" />
-        <div className="relative flex h-full flex-col gap-4 px-6 py-6">
-          <div className="flex-1 overflow-y-auto pr-2" ref={containerRef}>
+        <div className="relative flex h-full flex-col gap-4 px-4 py-4 md:px-6 md:py-6">
+          <div className="chat-messages flex-1 overflow-y-auto pr-2" ref={containerRef}>
             {messages.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center gap-6 text-center text-white/70">
                 <div className="inline-flex items-center gap-4 rounded-full bg-white/5 px-6 py-3 text-xs uppercase tracking-[0.35em] text-emerald-300/80">
@@ -154,7 +154,8 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
       </div>
 
       <form
-        className="border-t border-white/10 px-6 py-5 backdrop-blur pb-4"
+        ref={formRef}
+        className="border-t border-white/10 px-4 py-3 md:px-6 md:py-5 backdrop-blur pb-4"
         onSubmit={onSubmit}
       >
         <div className="flex items-end gap-3">
