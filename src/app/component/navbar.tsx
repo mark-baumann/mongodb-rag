@@ -17,11 +17,6 @@ const NavBar: React.FC = () => {
             QnA
           </Link>
         </li>
-        <li style={{ display: 'inline', marginLeft: '2rem' }}>
-          <Link href="/teach">
-            Train
-          </Link>
-        </li>
       </ol>
     </nav>
   );

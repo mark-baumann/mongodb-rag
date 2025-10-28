@@ -3,6 +3,7 @@ import { list } from '@vercel/blob';
 import NavBar from './component/navbar';
 
 import DeleteAllButton from './component/DeleteAllButton';
+import UploadDocuments from './component/UploadDocuments';
 
 const DOCUMENT_PREFIX = 'documents/';
 
@@ -49,7 +50,10 @@ const Home = async () => {
       <div className='max-w-5xl mx-auto p-8'>
         <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
           <h1 className='text-3xl font-bold text-gray-900'>Dokumente</h1>
-          {documents.length > 0 && <DeleteAllButton />}
+          <div className='flex flex-wrap items-center gap-4 justify-end'>
+            <UploadDocuments />
+            {documents.length > 0 && <DeleteAllButton />}
+          </div>
         </div>
         {documents.length > 0 ? (
           <ul className='space-y-3'>
