@@ -5,27 +5,39 @@ import pdf from 'pdf-parse';
 const DOCUMENT_PREFIX = 'documents/';
 
 export async function POST(req: NextRequest) {
+  console.log('Podcast generation request received');
   const { documentId } = await req.json();
+  console.log(`Document ID: ${documentId}`);
 
   if (!documentId) {
+    console.error('Missing documentId');
     return new NextResponse('Missing documentId', { status: 400 });
   }
 
   try {
     // 1. Get document content
+    console.log('Fetching document from Vercel Blob...');
     const blob = (await list({ prefix: `${DOCUMENT_PREFIX}${documentId}/` })).blobs[0];
     if (!blob) {
+      console.error('Document not found');
       return new NextResponse('Document not found', { status: 404 });
     }
+    console.log(`Document found: ${blob.url}`);
 
+    console.log('Fetching PDF content...');
     const response = await fetch(blob.url);
-    const buffer = await response.arrayBuffer();
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    console.log('Parsing PDF...');
     const data = await pdf(buffer);
     const text = data.text;
+    console.log(`PDF parsed, text length: ${text.length}`);
 
     // 2. Call ElevenLabs API
+    console.log('Calling ElevenLabs API...');
     const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
     if (!elevenLabsApiKey) {
+      console.error('ElevenLabs API key not found');
       return new NextResponse('ElevenLabs API key not found', { status: 500 });
     }
 
@@ -49,12 +61,17 @@ export async function POST(req: NextRequest) {
     );
 
     if (!elevenLabsResponse.ok) {
+      console.error(`ElevenLabs API request failed with status ${elevenLabsResponse.status}`);
+      console.error(await elevenLabsResponse.text());
       return new NextResponse('Failed to generate podcast', { status: 500 });
     }
+    console.log('ElevenLabs API request successful');
 
     const audio = await elevenLabsResponse.arrayBuffer();
+    console.log(`Audio generated, size: ${audio.byteLength}`);
 
     // 3. Return audio
+    console.log('Returning audio...');
     return new NextResponse(audio, {
       headers: {
         'Content-Type': 'audio/mpeg',
