@@ -12,6 +12,13 @@ type Props = {
   onClose?: () => void;
 };
 
+const suggestions = [
+  "Um was geht es in dem PDF",
+  "Wer hat das PDF erzeugt?",
+  "Was steht auf Seite 25?",
+  "Fasse jedes Kapitel zusammen",
+];
+
 export default function ChatWithPdfClient({ documentId, documentName, onClose }: Props) {
   const { apiKey } = useApiKey();
   const [waitingForAI, setWaitingForAI] = useState(false);
@@ -21,6 +28,7 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
     input,
     handleInputChange,
     handleSubmit,
+    setInput,
     isLoading,
   } = useChat({
     id: documentId,
@@ -47,6 +55,15 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
     setWaitingForAI(true);
     handleSubmit(event);
   };
+
+  const onSuggestionClick = (suggestion: string) => {
+    setInput(suggestion);
+    // The form submission will be triggered by the user clicking the submit button
+    // or by pressing enter in the textarea. To automatically submit, we would need
+    // to call handleSubmit here, but that requires a form event.
+    // For now, we just populate the input.
+  };
+
 
   return (
     <section className="flex h-full w-full flex-1 flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white lg:max-w-xl lg:border-l lg:border-white/10">
@@ -83,6 +100,18 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
                   Stelle deine Frage zum Dokument oder starte mit „Zusammenfassung“. Die Antworten
                   bleiben immer auf das ausgewählte PDF beschränkt.
                 </p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {suggestions.map((suggestion, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => onSuggestionClick(suggestion)}
+                      className="rounded-full bg-white/5 px-4 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/10"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="flex flex-col gap-4 pb-6">
