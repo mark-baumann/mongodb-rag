@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "ai/react";
 
@@ -22,8 +21,8 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
     handleInputChange,
     handleSubmit,
     isLoading,
-    setMessages,
   } = useChat({
+    id: documentId,
     body: { documentId, apiKey: apiKey || undefined },
   });
 
@@ -49,107 +48,108 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
   };
 
   return (
-    <section className="flex h-full w-full flex-1 flex-col bg-[#030712] text-white lg:max-w-lg lg:border-l lg:border-white/10">
-      <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
+    <section className="flex h-full w-full flex-1 flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white lg:max-w-xl lg:border-l lg:border-white/10">
+      <header className="flex items-center justify-between border-b border-white/10 px-6 py-5 backdrop-blur">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-emerald-400">
             Dokument-Chat
           </p>
-          <p className="truncate text-lg font-semibold text-white/90">{title}</p>
+          <p className="truncate text-xl font-semibold text-white">{title}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-3">
-          
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white transition hover:border-white/40 hover:bg-white/10"
-            >
-              Chat schließen
-            </button>
-          )}
-        </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white/80 transition hover:border-white/40 hover:text-white"
+          >
+            Chat schließen
+          </button>
+        )}
       </header>
 
-      <div className="flex flex-1 flex-col-reverse gap-4 overflow-hidden px-6 py-6">
-        <div className="flex w-full justify-center">
-          {waitingForAI && (
-            <div className="loading">
-              <Image src="/1484.gif" alt="Ladeanimation" width={64} height={64} />
-            </div>
-          )}
-        </div>
-
-        <div ref={containerRef} className="messages flex-1 overflow-y-auto pr-4">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-4 text-center text-white/70">
-              <div className="flex items-center gap-4">
-                <Image
-                  src="/MongoDB_White.svg"
-                  alt="MongoDB"
-                  width={120}
-                  height={120}
-                  className="opacity-80"
-                />
-                <span className="text-4xl font-semibold">+</span>
-                <Image
-                  src="/openAI.svg"
-                  alt="OpenAI"
-                  width={80}
-                  height={80}
-                  className="opacity-80"
-                />
-              </div>
-              <p className="text-sm">
-                Stelle Fragen zu deinem Dokument – die Antworten bleiben auf dieses PDF beschränkt.
-              </p>
-            </div>
-          ) : (
-            messages.map((message) => {
-              const isUser = message.role === "user";
-              return (
-                <div
-                  key={message.id}
-                  className="my-4 flex gap-4 text-sm text-white"
-                >
-                  <span className="relative flex shrink-0 overflow-hidden rounded-full">
-                    <div className="rounded-full bg-white/10 p-1">
-                      <Image
-                        src={isUser ? "/user.png" : "/bot.png"}
-                        alt={isUser ? "Nutzer" : "Bot"}
-                        width={32}
-                        height={32}
-                      />
-                    </div>
-                  </span>
-                  <div className="leading-relaxed">
-                    <span className="mb-1 block font-bold">
-                      {isUser ? "Du" : "Assistant"}
-                    </span>
-                    <p className="whitespace-pre-line text-white/90">{message.content}</p>
-                  </div>
+      <div className="relative flex-1 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-10 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.35),_transparent_55%)]" />
+        <div className="relative flex h-full flex-col gap-4 px-6 py-6">
+          <div className="flex-1 overflow-y-auto pr-2" ref={containerRef}>
+            {messages.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center gap-6 text-center text-white/70">
+                <div className="inline-flex items-center gap-4 rounded-full bg-white/5 px-6 py-3 text-xs uppercase tracking-[0.35em] text-emerald-300/80">
+                  <span>MongoDB</span>
+                  <span className="text-white/40">×</span>
+                  <span>OpenAI</span>
                 </div>
-              );
-            })
-          )}
+                <p className="max-w-sm text-sm leading-relaxed text-white/80">
+                  Stelle deine Frage zum Dokument oder starte mit „Zusammenfassung“. Die Antworten
+                  bleiben immer auf das ausgewählte PDF beschränkt.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4 pb-6">
+                {messages.map((message) => {
+                  const isUser = message.role === "user";
+                  return (
+                    <div
+                      key={message.id}
+                      className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-lg shadow-black/20 ${
+                          isUser
+                            ? "bg-emerald-500 text-emerald-50"
+                            : "border border-white/15 bg-white/5 text-white/90 backdrop-blur"
+                        }`}
+                      >
+                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-white/60">
+                          {isUser ? "Du" : "Assistant"}
+                        </p>
+                        <p className="whitespace-pre-line text-[0.95rem]">
+                          {message.content}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+                {waitingForAI && (
+                  <div className="flex w-full justify-start">
+                    <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
+                      <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+                      <span>Der Assistent denkt…</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       <form
-        className="border-t border-white/10 px-6 py-4"
+        className="border-t border-white/10 px-6 py-5 backdrop-blur"
         onSubmit={onSubmit}
       >
-        <div className="flex items-center justify-center gap-3">
-          <input
-            value={input}
-            onChange={handleInputChange}
-            className="flex h-11 w-full rounded-md border border-white/10 bg-white/5 px-3 text-sm text-white placeholder-white/40 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/60"
-            placeholder="Frage zum Dokument eingeben..."
-          />
+        <div className="flex items-end gap-3">
+          <div className="flex-1">
+            <label htmlFor="chat-input" className="sr-only">
+              Frage zum Dokument
+            </label>
+            <textarea
+              id="chat-input"
+              value={input}
+              onChange={handleInputChange}
+              rows={1}
+              onInput={(event) => {
+                const target = event.currentTarget;
+                target.style.height = "auto";
+                target.style.height = `${Math.min(target.scrollHeight, 160)}px`;
+              }}
+              className="max-h-40 w-full resize-none rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white placeholder-white/40 shadow-inner shadow-black/30 transition focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
+              placeholder="Frag etwas wie „Gib mir eine Zusammenfassung…“"
+            />
+          </div>
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="inline-flex h-11 items-center justify-center rounded-md bg-emerald-500 px-4 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-800"
+            className="inline-flex h-12 items-center justify-center rounded-2xl bg-emerald-500 px-6 text-sm font-semibold uppercase tracking-wide text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-800/60"
           >
             Senden
           </button>

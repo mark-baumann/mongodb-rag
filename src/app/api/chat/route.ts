@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { ConversationalRetrievalQAChain } from 'langchain/chains';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
+import { PromptTemplate } from 'langchain/prompts';
 import { LangChainStream, Message, StreamingTextResponse } from 'ai';
 
 import { vectorStore } from '@/utils/openai';
@@ -38,36 +39,53 @@ export async function POST(req: Request) {
 
     const { stream, handlers, writer } = LangChainStream();
 
-    const retrieverOptions: {
-      searchType: 'mmr';
-      searchKwargs: { fetchK: number; lambda: number };
-      filter?: Record<string, unknown>;
-    } = {
+    const retriever = vectorStore(apiKey).asRetriever({
       searchType: 'mmr',
       searchKwargs: { fetchK: 10, lambda: 0.25 },
-    };
-
-    if (documentId) {
-      retrieverOptions.filter = { documentId: { $eq: documentId } };
-    }
-
-    const retriever = vectorStore(apiKey).asRetriever(retrieverOptions);
+      filter: documentId
+        ? {
+            preFilter: { documentId: { $eq: documentId } },
+          }
+        : undefined,
+    });
 
     const chatHistory = formatHistory(messages.slice(0, -1));
 
-    const model = new ChatOpenAI({
+    const answerPrompt = PromptTemplate.fromTemplate(`Du bist ein präziser Assistent, der ausschließlich Informationen aus dem bereitgestellten Dokument nutzt.
+Antworte in klaren, vollständigen Sätzen auf Deutsch. Wiederhole keine Worte oder Sätze.
+Wenn dir Informationen fehlen, sage ehrlich, dass sie im Dokument nicht vorhanden sind.
+
+Frage: {question}
+Kontext:
+{context}
+
+Antwort:`);
+
+    const streamingModel = new ChatOpenAI({
       temperature: 0.2,
       streaming: true,
-      callbacks: [handlers],
       openAIApiKey: apiKey,
     });
 
-    const chain = ConversationalRetrievalQAChain.fromLLM(model, retriever, {
+    const questionModel = new ChatOpenAI({
+      temperature: 0.2,
+      streaming: false,
+      openAIApiKey: apiKey,
+    });
+
+    const chain = ConversationalRetrievalQAChain.fromLLM(streamingModel, retriever, {
       questionGeneratorTemplate: `Unterhalte dich ausschließlich über Inhalte aus dem Dokument.
 Vorherige Unterhaltung:
 {chat_history}
 
 Frage: {question}`,
+      qaChainOptions: {
+        type: 'stuff',
+        prompt: answerPrompt,
+      },
+      questionGeneratorChainOptions: {
+        llm: questionModel,
+      },
     });
 
     void chain
