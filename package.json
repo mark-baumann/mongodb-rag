@@ -1,5 +1,5 @@
 {
-  "name": "chatter",
+  "name": "mongodb-rag",
   "version": "0.1.0",
   "private": true,
   "scripts": {
