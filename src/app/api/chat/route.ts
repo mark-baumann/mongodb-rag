@@ -39,15 +39,29 @@ export async function POST(req: Request) {
 
     const { stream, handlers, writer } = LangChainStream();
 
-    const retriever = vectorStore(apiKey).asRetriever({
-      searchType: 'mmr',
-      searchKwargs: { fetchK: 10, lambda: 0.25 },
-      filter: documentId
-        ? {
-            preFilter: { documentId: { $eq: documentId } },
-          }
-        : undefined,
-    });
+    const store = vectorStore(apiKey);
+    const retriever = store.asRetriever({ k: 8 });
+
+    if (documentId) {
+      const originalGetRelevantDocuments = retriever.getRelevantDocuments.bind(retriever);
+      retriever.getRelevantDocuments = async (query, runManager) => {
+        const docs = await originalGetRelevantDocuments(query, runManager);
+        const filteredDocs = docs.filter(
+          (doc) => doc.metadata?.documentId && doc.metadata.documentId === documentId,
+        );
+
+        if (filteredDocs.length > 0) {
+          return filteredDocs;
+        }
+
+        const fallbackDocs = await store.similaritySearch(query, 12);
+        const filteredFallback = fallbackDocs.filter(
+          (doc) => doc.metadata?.documentId && doc.metadata.documentId === documentId,
+        );
+
+        return filteredFallback.length > 0 ? filteredFallback : docs;
+      };
+    }
 
     const chatHistory = formatHistory(messages.slice(0, -1));
 
@@ -64,6 +78,7 @@ Antwort:`);
     const streamingModel = new ChatOpenAI({
       temperature: 0.2,
       streaming: true,
+      callbacks: [handlers],
       openAIApiKey: apiKey,
     });
 
@@ -89,16 +104,22 @@ Frage: {question}`,
     });
 
     void chain
-      .call(
-        {
-          question,
-          chat_history: chatHistory,
-        },
-        { callbacks: [handlers] },
-      )
-      .catch((error) => {
+      .call({
+        question,
+        chat_history: chatHistory,
+      })
+      .catch(async (error) => {
         console.error('Error during chat execution:', error);
-        void writer.abort(error);
+        const fallbackMessage =
+          'Entschuldigung, beim Abrufen der Dokumentdaten ist ein Fehler aufgetreten. Bitte versuche es erneut.';
+        try {
+          await writer.ready;
+          await writer.write(fallbackMessage);
+          await writer.close();
+        } catch (streamError) {
+          console.error('Failed to send fallback message:', streamError);
+          void writer.abort(error);
+        }
       });
 
     return new StreamingTextResponse(stream);

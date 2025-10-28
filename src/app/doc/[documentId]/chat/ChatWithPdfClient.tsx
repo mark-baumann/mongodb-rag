@@ -136,7 +136,7 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
               id="chat-input"
               value={input}
               onChange={handleInputChange}
-              rows={1}
+              rows={3}
               onInput={(event) => {
                 const target = event.currentTarget;
                 target.style.height = "auto";
