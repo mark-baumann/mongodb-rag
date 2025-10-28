@@ -1,6 +1,7 @@
 import { list } from '@vercel/blob';
 import { notFound } from 'next/navigation';
 import ChatWithPdfClient from './ChatWithPdfClient';
+import NavBar from '../../../component/navbar';
 
 const DOCUMENT_PREFIX = 'documents/';
 
@@ -17,14 +18,16 @@ export default async function ChatDocumentPage({ params }: { params: { documentI
   const documentName = blob.pathname.split('/').pop() || 'Dokument';
 
   return (
-    <div className="min-h-screen w-full bg-gray-50">
-      <div className="relative h-[100svh] w-full overflow-hidden">
-        <iframe
-          src={viewerUrl}
-          title={documentName}
-          className="h-full w-full border-0"
-        />
-        {/* Floating chat bubble + panel handled in client component */}
+    <div className="flex min-h-screen flex-col bg-slate-950 text-white">
+      <NavBar />
+      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
+        <div className="relative flex-1 bg-slate-900">
+          <iframe
+            src={viewerUrl}
+            title={documentName}
+            className="absolute inset-0 h-full w-full border-0"
+          />
+        </div>
         <ChatWithPdfClient documentId={documentId} documentName={documentName} />
       </div>
     </div>

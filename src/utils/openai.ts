@@ -44,7 +44,11 @@ export const getCollection = (): Collection => {
   return cachedCollection;
 };
 
-export function getEmbeddingsTransformer(): OpenAIEmbeddings {
+export function getEmbeddingsTransformer(openAiApiKey?: string): OpenAIEmbeddings {
+  if (openAiApiKey) {
+    return new OpenAIEmbeddings({ openAIApiKey: openAiApiKey });
+  }
+
   if (!embeddingsInstance) {
     embeddingsInstance = new OpenAIEmbeddings();
   }
@@ -52,8 +56,8 @@ export function getEmbeddingsTransformer(): OpenAIEmbeddings {
   return embeddingsInstance;
 }
 
-export function vectorStore(): MongoDBAtlasVectorSearch {
-  return new MongoDBAtlasVectorSearch(getEmbeddingsTransformer(), searchArgs());
+export function vectorStore(openAiApiKey?: string): MongoDBAtlasVectorSearch {
+  return new MongoDBAtlasVectorSearch(getEmbeddingsTransformer(openAiApiKey), searchArgs());
 }
 
 export function searchArgs(): MongoDBAtlasVectorSearchLibArgs {

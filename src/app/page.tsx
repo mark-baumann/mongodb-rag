@@ -74,6 +74,8 @@ const Home = async () => {
                   </a>
                   <a
                     href={`/doc/${documentId}/chat`}
+                    target='_blank'
+                    rel='noopener noreferrer'
                     className='inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
                   >
                     Chatten
