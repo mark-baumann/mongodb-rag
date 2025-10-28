@@ -9,9 +9,10 @@ import { useApiKey } from "../../../component/ApiKeyProvider";
 type Props = {
   documentId: string;
   documentName?: string;
+  onClose?: () => void;
 };
 
-export default function ChatWithPdfClient({ documentId, documentName }: Props) {
+export default function ChatWithPdfClient({ documentId, documentName, onClose }: Props) {
   const { apiKey } = useApiKey();
   const [waitingForAI, setWaitingForAI] = useState(false);
 
@@ -48,23 +49,34 @@ export default function ChatWithPdfClient({ documentId, documentName }: Props) {
   };
 
   return (
-    <section className="flex h-full w-full max-w-2xl flex-1 flex-col bg-[#030712] text-white">
+    <section className="flex h-full w-full flex-1 flex-col bg-[#030712] text-white lg:max-w-lg lg:border-l lg:border-white/10">
       <header className="flex items-center justify-between border-b border-white/10 px-6 py-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-400">
             Dokument-Chat
           </p>
           <p className="truncate text-lg font-semibold text-white/90">{title}</p>
         </div>
-        {messages.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setMessages([])}
-            className="text-xs font-semibold uppercase tracking-wide text-emerald-300 transition hover:text-emerald-200"
-          >
-            Verlauf löschen
-          </button>
-        )}
+        <div className="flex shrink-0 items-center gap-3">
+          {messages.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setMessages([])}
+              className="text-xs font-semibold uppercase tracking-wide text-emerald-300 transition hover:text-emerald-200"
+            >
+              Verlauf löschen
+            </button>
+          )}
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-md border border-white/20 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white transition hover:border-white/40 hover:bg-white/10"
+            >
+              Chat schließen
+            </button>
+          )}
+        </div>
       </header>
 
       <div className="flex flex-1 flex-col-reverse gap-4 overflow-hidden px-6 py-6">
