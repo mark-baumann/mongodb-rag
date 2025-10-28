@@ -1,45 +1,40 @@
+"use client";
+
+import { useState, useEffect } from 'react';
 import { list } from '@vercel/blob';
 import { notFound } from 'next/navigation';
+import DocumentChatShell from './chat/DocumentChatShell';
 
 const DOCUMENT_PREFIX = 'documents/';
 
-type DocumentPageProps = {
-  params: {
-    documentId: string;
-  };
-};
-
-export const dynamic = 'force-dynamic';
-
-const DocumentPage = async ({ params }: DocumentPageProps) => {
+export default function DocumentPage({ params }: { params: { documentId: string } }) {
   const { documentId } = params;
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [documentName, setDocumentName] = useState<string | null>(null);
 
-  if (!documentId) {
-    return notFound();
+  useEffect(() => {
+    async function getDocument() {
+      if (!documentId) return notFound();
+
+      const blob = (await list({ prefix: `${DOCUMENT_PREFIX}${documentId}/` })).blobs[0];
+      if (!blob) return notFound();
+
+      setViewerUrl(blob.url);
+      setDocumentName(blob.pathname.split('/').pop() || 'Dokument');
+    }
+    getDocument();
+  }, [documentId]);
+
+  if (!viewerUrl || !documentName) {
+    return <div>Loading...</div>; // Or some other loading state
   }
-
-  const blob = (await list({ prefix: `${DOCUMENT_PREFIX}${documentId}/` })).blobs[0];
-
-  if (!blob) {
-    return notFound();
-  }
-
-  const viewerUrl = blob.url;
-  const documentName = blob.pathname.split('/').pop();
 
   return (
-    <html>
-      <head>
-        <title>{documentName}</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      </head>
-      <body style={{ margin: 0, overflow: 'hidden' }}>
-        <div style={{ height: '100vh', width: '100vw' }}>
-          <iframe src={viewerUrl} style={{ border: 'none', height: '100%', width: '100%' }} />
-        </div>
-      </body>
-    </html>
+    <DocumentChatShell
+      viewerUrl={viewerUrl}
+      documentId={documentId}
+      documentName={documentName}
+    />
   );
-};
+}
 
-export default DocumentPage;

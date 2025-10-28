@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "ai/react";
+import { X } from 'lucide-react';
 
 import { useApiKey } from "../../../component/ApiKeyProvider";
 
@@ -60,9 +61,9 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/20 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-white/80 transition hover:border-white/40 hover:text-white"
+            className="-mr-2 rounded-full p-2 text-white/80 transition hover:bg-white/10 hover:text-white"
           >
-            Chat schließen
+            <X size={24} />
           </button>
         )}
       </header>
@@ -124,7 +125,7 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
       </div>
 
       <form
-        className="border-t border-white/10 px-6 py-5 backdrop-blur"
+        className="border-t border-white/10 px-6 py-5 backdrop-blur pb-4"
         onSubmit={onSubmit}
       >
         <div className="flex items-end gap-3">
