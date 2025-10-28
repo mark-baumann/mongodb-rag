@@ -23,6 +23,11 @@ export async function POST(req: Request) {
     const providedKey = typeof body.apiKey === 'string' ? body.apiKey.trim() : '';
     const apiKey = providedKey || process.env.OPENAI_API_KEY;
 
+    console.log('Received chat request', {
+      documentId: documentId ?? null,
+      messageCount: messages.length,
+    });
+
     if (!question) {
       return NextResponse.json({ message: 'No question provided' }, { status: 400 });
     }
@@ -31,15 +36,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'No OpenAI API key provided' }, { status: 400 });
     }
 
-    const { stream, handlers } = LangChainStream();
+    const { stream, handlers, writer } = LangChainStream();
 
-    const retrieverOptions: Record<string, any> = {
+    const retrieverOptions: {
+      searchType: 'mmr';
+      searchKwargs: { fetchK: number; lambda: number };
+      filter?: Record<string, unknown>;
+    } = {
       searchType: 'mmr',
       searchKwargs: { fetchK: 10, lambda: 0.25 },
     };
 
     if (documentId) {
-      retrieverOptions.searchKwargs.pre_filter = { documentId: { $eq: documentId } };
+      retrieverOptions.filter = { documentId: { $eq: documentId } };
     }
 
     const retriever = vectorStore(apiKey).asRetriever(retrieverOptions);
@@ -61,10 +70,18 @@ Vorherige Unterhaltung:
 Frage: {question}`,
     });
 
-    await chain.call({
-      question,
-      chat_history: chatHistory,
-    });
+    void chain
+      .call(
+        {
+          question,
+          chat_history: chatHistory,
+        },
+        { callbacks: [handlers] },
+      )
+      .catch((error) => {
+        console.error('Error during chat execution:', error);
+        void writer.abort(error);
+      });
 
     return new StreamingTextResponse(stream);
   } catch (error) {
