@@ -37,7 +37,7 @@ const DocumentChatShell = ({ viewerUrl, documentId, documentName }: DocumentChat
         )}
 
         {isChatOpen && (
-          <div className="fixed bottom-6 right-6 z-20 w-full max-w-md h-[calc(100vh-8rem)] bg-slate-900 rounded-lg shadow-2xl">
+          <div className="fixed bottom-0 right-0 z-20 w-full h-full md:h-[calc(100vh-8rem)] md:max-w-md bg-slate-900 rounded-lg shadow-2xl md:bottom-6 md:right-6">
             <ChatWithPdfClient
               documentId={documentId}
               documentName={documentName}
