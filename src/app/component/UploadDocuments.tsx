@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 export default function UploadDocuments() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hideTimeoutRef = useRef<number | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 

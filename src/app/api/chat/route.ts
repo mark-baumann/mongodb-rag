@@ -33,13 +33,13 @@ export async function POST(req: Request) {
 
     const { stream, handlers } = LangChainStream();
 
-    const retrieverOptions: Record<string, unknown> = {
+    const retrieverOptions: Record<string, any> = {
       searchType: 'mmr',
       searchKwargs: { fetchK: 10, lambda: 0.25 },
     };
 
     if (documentId) {
-      retrieverOptions.filter = { preFilter: { documentId } };
+      retrieverOptions.searchKwargs.pre_filter = { documentId: { $eq: documentId } };
     }
 
     const retriever = vectorStore(apiKey).asRetriever(retrieverOptions);
