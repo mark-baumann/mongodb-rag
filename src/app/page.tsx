@@ -64,21 +64,22 @@ const Home = async () => {
               >
                 <span className='font-medium text-gray-800 truncate'>{name}</span>
                 <div className='flex items-center gap-3 sm:justify-end'>
-                  <a
+                     {/*<a
                     href={directUrl}
                     target='_blank'
                     rel='noopener noreferrer'
                     className='inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                   >
                     Ansehen
-                  </a>
+                  </a> */}
+                  
                   <a
                     href={`/doc/${documentId}/chat`}
                     target='_blank'
                     rel='noopener noreferrer'
                     className='inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
                   >
-                    Chatten
+                    Ansehen
                   </a>
                 </div>
               </li>
