@@ -64,7 +64,7 @@ const NavBar: React.FC = () => {
   return (
     <>
       <nav className="sticky top-0 z-40 bg-gradient-to-r from-emerald-700 via-emerald-600 to-emerald-500 shadow-lg backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 text-sm text-white sm:px-6 lg:px-8 md:py-3">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5 text-sm text-white sm:px-6 lg:px-8 md:py-4">
           <Link href="/" className="flex items-center gap-3">
             <div className="relative h-8 w-8">
               <Image src="/mongoDB.svg" alt="MongoDB Logo" fill sizes="32px" priority />
