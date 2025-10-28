@@ -58,15 +58,7 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
           <p className="truncate text-lg font-semibold text-white/90">{title}</p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          {messages.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setMessages([])}
-              className="text-xs font-semibold uppercase tracking-wide text-emerald-300 transition hover:text-emerald-200"
-            >
-              Verlauf löschen
-            </button>
-          )}
+          
           {onClose && (
             <button
               type="button"
@@ -162,11 +154,6 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
             Senden
           </button>
         </div>
-        {!apiKey && (
-          <p className="mt-2 text-xs text-amber-300">
-            Kein OpenAI API-Key hinterlegt – nutze das Einstellungsmenü (Zahnrad), bevor du fragst.
-          </p>
-        )}
       </form>
     </section>
   );
