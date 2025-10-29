@@ -120,7 +120,7 @@ export default function UploadDocuments() {
         disabled={isUploading}
         className='rounded bg-black px-4 py-2 font-bold text-white transition-colors duration-150 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-600'
       >
-        {isUploading ? 'Uploading...' : 'Upload'}
+        {isUploading ? 'Uploading...' : 'Dokument hochladen'}
       </button>
     </>
   );

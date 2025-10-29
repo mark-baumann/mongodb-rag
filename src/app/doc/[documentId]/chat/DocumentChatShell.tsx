@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MessageSquare } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import NavBar from "../../../component/navbar";
@@ -16,6 +16,17 @@ type DocumentChatShellProps = {
 
 const DocumentChatShell = ({ viewerUrl, documentId, documentName }: DocumentChatShellProps) => {
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  useEffect(() => {
+    if (isChatOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isChatOpen]);
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-950 text-white">

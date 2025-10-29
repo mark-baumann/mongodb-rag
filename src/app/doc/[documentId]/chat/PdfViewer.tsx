@@ -101,7 +101,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
           key={`page_${index + 1}`}
           ref={(el) => (pageRefs.current[index] = el)}
           data-page-number={index + 1}
-          className="mb-1 shadow-lg relative"
+          className="mb-0 shadow-lg relative"
           style={{ direction: 'ltr' }}
         />
       ))}
