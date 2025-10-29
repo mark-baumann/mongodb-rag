@@ -18,13 +18,27 @@ export async function POST(request: Request) {
     const trimmedFolder = typeof folderName === 'string' ? folderName.trim() : '';
     const collection = getCollection();
 
-    // Store folder assignment inside metadata alongside documentId
+    // Store folder assignment both nested and top-level for compatibility
     const updatePayload = trimmedFolder
-      ? { $set: { 'metadata.folderName': trimmedFolder } }
-      : { $unset: { 'metadata.folderName': '' } };
+      ? { $set: { 'metadata.folderName': trimmedFolder, folderName: trimmedFolder } }
+      : { $unset: { 'metadata.folderName': '', folderName: '' } };
 
-    // Match by nested metadata.documentId (how LangChain stores metadata)
-    const updateResult = await collection.updateMany({ 'metadata.documentId': documentId }, updatePayload);
+    // Match by nested or top-level documentId for robustness
+    const primaryFilter = { $or: [ { 'metadata.documentId': documentId }, { documentId } ] } as const;
+    let updateResult = await collection.updateMany(primaryFilter as any, updatePayload as any);
+
+    // Fallback: match by blob source URL containing the documentId
+    if (updateResult.matchedCount === 0) {
+      const sourceRegex = new RegExp(`${documentId}`);
+      const fallbackFilter = { 'metadata.source': { $regex: sourceRegex } } as const;
+
+      // When setting a folder, also ensure metadata.documentId is written for future matches
+      const fallbackUpdate = trimmedFolder
+        ? { $set: { 'metadata.folderName': trimmedFolder, folderName: trimmedFolder, 'metadata.documentId': documentId } }
+        : updatePayload;
+
+      updateResult = await collection.updateMany(fallbackFilter as any, fallbackUpdate as any);
+    }
 
     if (updateResult.matchedCount === 0) {
       return new NextResponse(JSON.stringify({ message: 'Document metadata not found' }), {

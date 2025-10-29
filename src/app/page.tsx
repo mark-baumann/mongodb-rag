@@ -79,8 +79,20 @@ const Home = async () => {
       const collection = getCollection();
       const aggregated = await collection
         .aggregate<{ _id: string; folderName?: string }>([
-          { $match: { 'metadata.documentId': { $in: documentIds } } },
-          { $group: { _id: '$metadata.documentId', folderName: { $first: '$metadata.folderName' } } },
+          {
+            $match: {
+              $or: [
+                { 'metadata.documentId': { $in: documentIds } },
+                { documentId: { $in: documentIds } },
+              ],
+            },
+          },
+          {
+            $group: {
+              _id: { $ifNull: ['$metadata.documentId', '$documentId'] },
+              folderName: { $first: { $ifNull: ['$metadata.folderName', '$folderName'] } },
+            },
+          },
         ])
         .toArray();
 

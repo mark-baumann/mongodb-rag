@@ -46,7 +46,12 @@ export async function POST(request: Request) {
     console.log('MongoDB collection retrieved.');
 
     console.log(`Deleting document from MongoDB with documentId: ${documentId}`);
-    const deleteResult = await collection.deleteMany({ 'metadata.documentId': documentId });
+    const deleteResult = await collection.deleteMany({
+      $or: [
+        { 'metadata.documentId': documentId },
+        { documentId },
+      ],
+    });
     console.log(`Deleted ${deleteResult.deletedCount} documents from MongoDB.`);
 
     console.log('Deletion process completed successfully.');
