@@ -5,7 +5,8 @@ import NavBar from './component/navbar';
 import DeleteAllButton from './component/DeleteAllButton';
 import UploadDocuments from './component/UploadDocuments';
 import CreateFolderButton from './component/CreateFolderButton';
-import DraggableDocumentList from './component/DraggableDocumentList';
+import DocumentItem from './component/DocumentItem';
+import FolderItem from './component/FolderItem';
 
 const DOCUMENT_PREFIX = 'documents/';
 
@@ -15,6 +16,7 @@ type DocumentListItem = {
   documentId: string;
   directUrl: string;
   pathname: string;
+  folder: string | null;
 };
 
 export const dynamic = 'force-dynamic';
@@ -51,6 +53,7 @@ const Home = async () => {
 
         const name = pathParts[pathParts.length - 1];
         const documentId = pathParts[pathParts.length - 2];
+        const folder = pathParts.length > 2 ? pathParts.slice(0, -2).join('/') : null;
 
         return {
           name,
@@ -58,12 +61,27 @@ const Home = async () => {
           documentId,
           directUrl: blob.url,
           pathname: blob.pathname,
+          folder,
         };
       })
       .filter((item): item is DocumentListItem => Boolean(item));
 
   } catch (error) {
     console.error('Failed to list blobs', error);
+  }
+
+  const documentsByFolder: Record<string, DocumentListItem[]> = {};
+  const rootDocuments: DocumentListItem[] = [];
+
+  for (const doc of documents) {
+    if (doc.folder) {
+      if (!documentsByFolder[doc.folder]) {
+        documentsByFolder[doc.folder] = [];
+      }
+      documentsByFolder[doc.folder].push(doc);
+    } else {
+      rootDocuments.push(doc);
+    }
   }
 
   return (
@@ -80,7 +98,20 @@ const Home = async () => {
           </div>
         </div>
         {(documents.length > 0 || folders.length > 0) ? (
-          <DraggableDocumentList documents={documents} folders={folders} />
+          <ul className='space-y-3'>
+            {folders.map((folderName) => (
+              <FolderItem key={folderName} folderName={folderName}>
+                <ul className="space-y-2 pt-2">
+                  {(documentsByFolder[folderName] || []).map(doc => (
+                    <DocumentItem key={doc.pathname} document={doc} folders={folders} />
+                  ))}
+                </ul>
+              </FolderItem>
+            ))}
+            {rootDocuments.map((doc) => (
+              <DocumentItem key={doc.pathname} document={doc} folders={folders} />
+            ))}
+          </ul>
         ) : (
           <p className='text-gray-600 mt-4'>Noch keine Dokumente hochgeladen.</p>
         )}
