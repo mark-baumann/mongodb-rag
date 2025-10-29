@@ -15,18 +15,29 @@ export async function POST(request: Request) {
 
     console.log(`Starting deletion for documentId: ${documentId}`);
 
-    // Delete blob from Vercel Blob
-    const blobPath = `${DOCUMENT_PREFIX}${documentId}/${name}`;
-    console.log(`Listing blobs with prefix: ${blobPath}`)
-    const { blobs } = await list({ prefix: blobPath });
-    const urlsToDelete = blobs.filter(blob => blob.pathname === blobPath).map((blob) => blob.url);
+    const expectedPath = `${DOCUMENT_PREFIX}${documentId}/${name}`;
+    const prefix = `${DOCUMENT_PREFIX}${documentId}/`;
+    const urlsToDelete: string[] = [];
+
+    console.log(`Listing blobs with prefix: ${prefix}`);
+    let cursor: string | undefined;
+
+    do {
+      const response = await list({ prefix, cursor });
+      response.blobs.forEach((blob) => {
+        if (blob.pathname === expectedPath) {
+          urlsToDelete.push(blob.url);
+        }
+      });
+      cursor = response.cursor;
+    } while (cursor);
 
     if (urlsToDelete.length > 0) {
       console.log(`Deleting blob: ${urlsToDelete[0]}`);
       await del(urlsToDelete);
       console.log('Blob deleted successfully.');
     } else {
-      console.log(`Blob not found for path: ${blobPath}`);
+      console.warn(`Blob not found for path: ${expectedPath}`);
     }
 
     // Delete document from MongoDB
