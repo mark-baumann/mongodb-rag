@@ -95,13 +95,13 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
   }, [numPages]);
 
   return (
-    <div className="p-4 flex flex-col items-center">
+    <div className="p-4 flex flex-col items-center gap-8">
       {Array.from(new Array(numPages), (el, index) => (
         <div
           key={`page_${index + 1}`}
           ref={(el) => (pageRefs.current[index] = el)}
           data-page-number={index + 1}
-          className="mb-0 shadow-lg relative"
+          className="shadow-lg relative"
           style={{ direction: 'ltr' }}
         />
       ))}

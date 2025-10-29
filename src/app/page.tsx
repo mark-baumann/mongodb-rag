@@ -103,13 +103,13 @@ const Home = async () => {
               <FolderItem key={folderName} folderName={folderName}>
                 <ul className="space-y-2 pt-2">
                   {(documentsByFolder[folderName] || []).map(doc => (
-                    <DocumentItem key={doc.pathname} document={doc} folders={folders} />
+                    <DocumentItem key={doc.pathname} document={doc} />
                   ))}
                 </ul>
               </FolderItem>
             ))}
             {rootDocuments.map((doc) => (
-              <DocumentItem key={doc.pathname} document={doc} folders={folders} />
+              <DocumentItem key={doc.pathname} document={doc} />
             ))}
           </ul>
         ) : (
