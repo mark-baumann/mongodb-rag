@@ -134,24 +134,24 @@ export default function DocumentItem({ document, folders }: DocumentItemProps) {
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Dokument einem Ordner hinzufügen</h2>
-            <label htmlFor={`folder-input-${document.documentId}`} className="block text-sm font-medium text-gray-700 mb-2">
-              Ordner auswählen oder neuen Namen eingeben
+            <label htmlFor={`folder-select-${document.documentId}`} className="block text-sm font-medium text-gray-700 mb-2">
+              Ordner auswählen
             </label>
-            <input
-              id={`folder-input-${document.documentId}`}
-              type="text"
-              list={folderOptionsId}
+            <select
+              id={`folder-select-${document.documentId}`}
               value={targetFolder}
               onChange={(event) => setTargetFolder(event.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-800 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              placeholder="Ordnername"
-              autoFocus
-            />
-            <datalist id={folderOptionsId}>
+            >
+              <option value="" disabled>
+                Ordner auswählen
+              </option>
               {folders.map((folder) => (
-                <option key={folder} value={folder} />
+                <option key={folder} value={folder}>
+                  {folder}
+                </option>
               ))}
-            </datalist>
+            </select>
             <div className="mt-6 flex justify-end gap-4">
               <button
                 onClick={() => setIsMoveModalOpen(false)}
