@@ -67,7 +67,7 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
 
   return (
     <section className="flex h-full w-full flex-1 flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white lg:max-w-xl lg:border-l lg:border-white/10 rounded-lg">
-      <header className="flex items-center justify-between border-b border-white/10 px-4 py-3 md:px-6 md:py-5 backdrop-blur sticky top-0 z-10 bg-slate-900/50">
+      <header className="flex items-center justify-between border-b border-white/10 px-4 py-3 md:px-6 md:py-5 backdrop-blur sticky top-0 z-10 bg-slate-900">
         <div className="min-w-0">
           <p className="text-[0.6rem] md:text-[0.7rem] font-semibold uppercase tracking-[0.25em] text-emerald-400">
             Dokument-Chat
