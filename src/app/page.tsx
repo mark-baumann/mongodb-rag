@@ -1,6 +1,7 @@
 import React from 'react';
 import { list } from '@vercel/blob';
 import NavBar from './component/navbar';
+import { getCollection } from '@/utils/openai';
 
 import DeleteAllButton from './component/DeleteAllButton';
 import UploadDocuments from './component/UploadDocuments';
@@ -70,6 +71,40 @@ const Home = async () => {
     console.error('Failed to list blobs', error);
   }
 
+  const documentIds = documents.map((doc) => doc.documentId);
+  let folderAssignments: Record<string, string | null> = {};
+
+  if (documentIds.length > 0) {
+    try {
+      const collection = getCollection();
+      const aggregated = await collection
+        .aggregate<{ _id: string; folderName?: string }>([
+          { $match: { documentId: { $in: documentIds } } },
+          { $group: { _id: '$documentId', folderName: { $first: '$folderName' } } },
+        ])
+        .toArray();
+
+      folderAssignments = Object.fromEntries(
+        aggregated.map(({ _id, folderName }) => [_id, folderName ?? null]),
+      );
+    } catch (error) {
+      console.error('Failed to load folder assignments from MongoDB', error);
+    }
+  }
+
+  documents = documents.map((doc) => ({
+    ...doc,
+    folder: folderAssignments[doc.documentId] ?? doc.folder ?? null,
+  }));
+
+  const folderSet = new Set(folders);
+  Object.values(folderAssignments).forEach((folderName) => {
+    if (folderName) {
+      folderSet.add(folderName);
+    }
+  });
+  folders = Array.from(folderSet);
+
   const documentsByFolder: Record<string, DocumentListItem[]> = {};
   const rootDocuments: DocumentListItem[] = [];
 
@@ -103,13 +138,13 @@ const Home = async () => {
               <FolderItem key={folderName} folderName={folderName}>
                 <ul className="space-y-2 pt-2">
                   {(documentsByFolder[folderName] || []).map(doc => (
-                    <DocumentItem key={doc.pathname} document={doc} />
+                    <DocumentItem key={doc.pathname} document={doc} folders={folders} />
                   ))}
                 </ul>
               </FolderItem>
             ))}
             {rootDocuments.map((doc) => (
-              <DocumentItem key={doc.pathname} document={doc} />
+              <DocumentItem key={doc.pathname} document={doc} folders={folders} />
             ))}
           </ul>
         ) : (

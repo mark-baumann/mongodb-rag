@@ -3,7 +3,7 @@ import withPWA from '@ducanh2912/next-pwa';
 /** @type {import('next').NextConfig} */
 let nextConfig = {
     experimental: {
-      serverComponentsExternalPackages: ["pdf-parse"],
+      serverComponentsExternalPackages: ["pdf-parse", "@vercel/blob", "undici", "mongodb"],
       },    
     webpack: (config, { isServer }) => {
         if (isServer) {
