@@ -28,10 +28,12 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
           const pageContainer = pageRefs.current[i - 1];
 
           if (pageContainer) {
-            pageContainer.style.width = `${viewport.width}px`;
-            pageContainer.style.height = `${viewport.height}px`;
+            pageContainer.style.width = `${viewport.width / 2}px`;
+            pageContainer.style.height = `${viewport.height / 2}px`;
+            pageContainer.style.maxWidth = '100%';
 
             const canvas = document.createElement('canvas');
+            canvas.className = 'w-full h-auto';
             pageContainer.appendChild(canvas);
             const context = canvas.getContext('2d');
             canvas.height = viewport.height;

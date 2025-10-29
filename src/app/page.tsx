@@ -52,6 +52,7 @@ const Home = async () => {
         <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
           <h1 className='text-3xl font-bold text-gray-900'>Dokumente</h1>
           <div className='flex flex-wrap items-center gap-4 justify-end'>
+            <button className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'>Ordner erstellen</button>
             <UploadDocuments />
             {documents.length > 0 && <DeleteAllButton />}
           </div>

@@ -85,72 +85,67 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
         )}
       </header>
 
-      <div className="relative flex-1">
-        <div className="absolute inset-0 pointer-events-none opacity-10 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.35),_transparent_55%)]" />
-        <div className="relative flex h-full flex-col gap-4 px-4 py-4 md:px-6 md:py-6">
-          <div className="chat-messages flex-1 overflow-y-auto pr-2" ref={containerRef}>
-            {messages.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center gap-6 text-center text-white/70">
-                <div className="inline-flex items-center gap-4 rounded-full bg-white/5 px-6 py-3 text-xs uppercase tracking-[0.35em] text-emerald-300/80">
-                  <span>MongoDB</span>
-                  <span className="text-white/40">×</span>
-                  <span>OpenAI</span>
-                </div>
-                <p className="max-w-sm text-sm leading-relaxed text-white/80">
-                  Stelle deine Frage zum Dokument oder starte mit „Zusammenfassung“. Die Antworten
-                  bleiben immer auf das ausgewählte PDF beschränkt.
-                </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {suggestions.map((suggestion, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => onSuggestionClick(suggestion)}
-                      className="rounded-full bg-white/5 px-4 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/10"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4 pb-6">
-                {messages.map((message) => {
-                  const isUser = message.role === "user";
-                  return (
-                    <div
-                      key={message.id}
-                      className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-lg shadow-black/20 ${
-                          isUser
-                            ? "bg-emerald-500 text-emerald-50"
-                            : "border border-white/15 bg-white/5 text-white/90 backdrop-blur"
-                        }`}
-                      >
-                        <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-white/60">
-                          {isUser ? "Du" : "Assistant"}
-                        </p>
-                        <p className="whitespace-pre-line text-[0.95rem]">
-                          {message.content}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-                {waitingForAI && (
-                  <div className="flex w-full justify-start">
-                    <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
-                      <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-                      <span>Der Assistent denkt…</span>
-                    </div>
+      <div className="flex-1 overflow-y-auto p-4 md:p-6" ref={containerRef}>
+        {messages.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center gap-6 text-center text-white/70">
+            <div className="inline-flex items-center gap-4 rounded-full bg-white/5 px-6 py-3 text-xs uppercase tracking-[0.35em] text-emerald-300/80">
+              <span>MongoDB</span>
+              <span className="text-white/40">×</span>
+              <span>OpenAI</span>
+            </div>
+            <p className="max-w-sm text-sm leading-relaxed text-white/80">
+              Stelle deine Frage zum Dokument oder starte mit „Zusammenfassung“. Die Antworten
+              bleiben immer auf das ausgewählte PDF beschränkt.
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
+              {suggestions.map((suggestion, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => onSuggestionClick(suggestion)}
+                  className="rounded-full bg-white/5 px-4 py-2 text-xs font-semibold text-white/70 transition hover:bg-white/10"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4 pb-6">
+            {messages.map((message) => {
+              const isUser = message.role === "user";
+              return (
+                <div
+                  key={message.id}
+                  className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-lg shadow-black/20 ${
+                      isUser
+                        ? "bg-emerald-500 text-emerald-50"
+                        : "border border-white/15 bg-white/5 text-white/90 backdrop-blur"
+                    }`}
+                  >
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-white/60">
+                      {isUser ? "Du" : "Assistant"}
+                    </p>
+                    <p className="whitespace-pre-line text-[0.95rem]">
+                      {message.content}
+                    </p>
                   </div>
-                )}
+                </div>
+              );
+            })}
+            {waitingForAI && (
+              <div className="flex w-full justify-start">
+                <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+                  <span>Der Assistent denkt…</span>
+                </div>
               </div>
             )}
           </div>
-        </div>
+        )}
       </div>
 
       <form
