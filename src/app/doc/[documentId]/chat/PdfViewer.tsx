@@ -33,73 +33,112 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
   }, [url]);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(async (entry) => {
-          if (entry.isIntersecting) {
-            const pageIndex = parseInt((entry.target as HTMLElement).dataset.pageNumber || '0', 10);
-            if (pageIndex > 0 && pdfRef.current) {
-              const pageContainer = pageRefs.current[pageIndex - 1];
-              if (pageContainer && pageContainer.childElementCount === 0) { // Render only once
-                const page = await pdfRef.current.getPage(pageIndex);
-                const scale = 2;
-                const viewport = page.getViewport({ scale, rotation: page.rotate });
+    if (!pdfRef.current || numPages === 0) {
+      return;
+    }
 
-                const parentWidth =
-                  pageContainer.parentElement?.clientWidth ??
-                  pageContainer.clientWidth ??
-                  window.innerWidth;
-                const aspectRatio = viewport.height / viewport.width;
-                const placeholderHeight = Math.max(parentWidth * aspectRatio, 120);
+    let cancelled = false;
 
-                pageContainer.style.width = '100%';
-                pageContainer.style.maxWidth = `${viewport.width}px`;
-                pageContainer.style.minHeight = `${placeholderHeight}px`;
+    const renderPage = async (pageIndex: number) => {
+      if (!pdfRef.current || cancelled) return;
 
-                const canvas = document.createElement('canvas');
-                canvas.className = 'w-full h-auto';
-                pageContainer.appendChild(canvas);
-                const context = canvas.getContext('2d');
-                canvas.height = viewport.height;
-                canvas.width = viewport.width;
+      let pageContainer = pageRefs.current[pageIndex - 1];
+      let attempts = 0;
 
-                if (context) {
-                  const renderContext = {
-                    canvasContext: context,
-                    viewport: viewport,
-                  };
-                  await page.render(renderContext).promise;
-                }
+      while (!pageContainer && attempts < 8) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        if (cancelled) return;
+        pageContainer = pageRefs.current[pageIndex - 1];
+        attempts += 1;
+      }
 
-                const textLayerDiv = document.createElement('div');
-                textLayerDiv.className = 'textLayer';
-                pageContainer.appendChild(textLayerDiv);
+      if (!pageContainer || pageContainer.childElementCount > 0) return;
 
-                const textContent = await page.getTextContent();
-                pdfjsLib.renderTextLayer({
-                  textContentSource: textContent,
-                  container: textLayerDiv,
-                  viewport: viewport,
-                  textDivs: [],
-                });
+      try {
+        const page = await pdfRef.current.getPage(pageIndex);
+        if (cancelled) return;
 
-                pageContainer.style.minHeight = '';
-              }
-            }
-          }
+        const parentRect = pageContainer.parentElement?.getBoundingClientRect();
+        const containerWidth = pageContainer.getBoundingClientRect().width || 0;
+        const availableWidth = containerWidth || parentRect?.width || 0;
+
+        const baseViewport = page.getViewport({ scale: 1, rotation: page.rotate });
+        const fallbackWidth = window.innerWidth || baseViewport.width;
+        const safeWidth = availableWidth > 0 ? availableWidth : fallbackWidth;
+        const scale = safeWidth / baseViewport.width;
+        const viewport = page.getViewport({ scale, rotation: page.rotate });
+        const outputScale = window.devicePixelRatio || 1;
+
+        pageContainer.style.position = 'relative';
+        pageContainer.style.width = '100%';
+        pageContainer.style.minHeight = `${viewport.height}px`;
+        pageContainer.style.maxWidth = '100%';
+        pageContainer.style.backgroundColor = '#ffffff';
+
+        const canvas = document.createElement('canvas');
+        canvas.className = 'w-full h-auto';
+        pageContainer.appendChild(canvas);
+
+        const context = canvas.getContext('2d');
+        if (!context) {
+          pageContainer.removeChild(canvas);
+          return;
+        }
+
+        const scaledWidth = Math.floor(viewport.width * outputScale);
+        const scaledHeight = Math.floor(viewport.height * outputScale);
+
+        canvas.width = scaledWidth;
+        canvas.height = scaledHeight;
+        canvas.style.width = `${viewport.width}px`;
+        canvas.style.height = `${viewport.height}px`;
+
+        const renderContext = {
+          canvasContext: context,
+          viewport,
+          transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined,
+        };
+
+        await page.render(renderContext).promise;
+        if (cancelled) {
+          return;
+        }
+
+        const textLayerDiv = document.createElement('div');
+        textLayerDiv.className = 'textLayer';
+        textLayerDiv.style.width = `${viewport.width}px`;
+        textLayerDiv.style.height = `${viewport.height}px`;
+        textLayerDiv.style.position = 'absolute';
+        textLayerDiv.style.top = '0';
+        textLayerDiv.style.left = '0';
+        textLayerDiv.style.transformOrigin = '0 0';
+        pageContainer.appendChild(textLayerDiv);
+
+        const textContent = await page.getTextContent();
+        if (cancelled) return;
+
+        pdfjsLib.renderTextLayer({
+          textContentSource: textContent,
+          container: textLayerDiv,
+          viewport,
+          textDivs: [],
         });
-      },
-      { rootMargin: '50px' } // Pre-load pages that are 50px away from the viewport
-    );
+      } catch (error) {
+        console.error(`Error rendering page ${pageIndex}:`, error);
+      }
+    };
 
-    pageRefs.current.forEach((ref) => {
-      if (ref) observer.observe(ref);
-    });
+    const renderAllPages = async () => {
+      for (let pageIndex = 1; pageIndex <= numPages; pageIndex++) {
+        if (cancelled) break;
+        await renderPage(pageIndex);
+      }
+    };
+
+    renderAllPages();
 
     return () => {
-      pageRefs.current.forEach((ref) => {
-        if (ref) observer.unobserve(ref);
-      });
+      cancelled = true;
     };
   }, [numPages]);
 
@@ -110,7 +149,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
           key={`page_${index + 1}`}
           ref={(el) => (pageRefs.current[index] = el)}
           data-page-number={index + 1}
-          className="shadow-lg relative"
+          className="shadow-lg relative w-full"
           style={{ direction: 'ltr' }}
         />
       ))}

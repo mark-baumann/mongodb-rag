@@ -85,7 +85,10 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
         )}
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6" ref={containerRef}>
+      <div
+        className="flex-1 overflow-y-auto px-4 pb-4 pt-20 md:px-6 md:pb-6 md:pt-6"
+        ref={containerRef}
+      >
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-6 text-center text-white/70">
             <div className="inline-flex items-center gap-4 rounded-full bg-white/5 px-6 py-3 text-xs uppercase tracking-[0.35em] text-emerald-300/80">
