@@ -45,9 +45,9 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
                 const scale = 2;
                 const viewport = page.getViewport({ scale, rotation: page.rotate });
 
-                pageContainer.style.width = `${viewport.width / 2}px`;
-                pageContainer.style.height = `${viewport.height / 2}px`;
-                pageContainer.style.maxWidth = '100%';
+                pageContainer.style.width = '100%';
+                pageContainer.style.maxWidth = `${viewport.width}px`;
+                pageContainer.style.height = 'auto';
 
                 const canvas = document.createElement('canvas');
                 canvas.className = 'w-full h-auto';
@@ -95,7 +95,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
   }, [numPages]);
 
   return (
-    <div className="p-4 sm:p-6 flex flex-col items-center gap-2 sm:gap-4 lg:gap-6">
+    <div className="p-4 sm:p-6 flex flex-col items-center gap-[5px] sm:gap-4 lg:gap-6">
       {Array.from(new Array(numPages), (el, index) => (
         <div
           key={`page_${index + 1}`}
