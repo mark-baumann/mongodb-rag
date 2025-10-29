@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import pdf from 'pdf-parse';
 import { randomUUID } from 'crypto';
 import { put } from '@vercel/blob';
@@ -17,6 +18,10 @@ const sanitizeFileName = (name: string) =>
 
 export async function POST(req: NextRequest) {
   try {
+    const authed = cookies().get('auth')?.value === '1';
+    if (!authed) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
     const formData = await req.formData();
     const formValues = Array.from(formData.values());
 

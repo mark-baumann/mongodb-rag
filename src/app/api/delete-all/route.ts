@@ -1,11 +1,16 @@
 import { del, list } from '@vercel/blob';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { getCollection } from '@/utils/openai';
 
 const DOCUMENT_PREFIX = 'documents/';
 
 export async function POST() {
   try {
+    const authed = cookies().get('auth')?.value === '1';
+    if (!authed) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
     console.log('Starting deletion process...');
 
     // Delete all blobs from Vercel Blob

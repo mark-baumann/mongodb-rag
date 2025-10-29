@@ -2,12 +2,20 @@
 
 import { del, list } from '@vercel/blob';
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { getCollection } from '@/utils/openai';
 
 const DOCUMENT_PREFIX = 'documents/';
 
 export async function POST(request: Request) {
   try {
+    const authed = cookies().get('auth')?.value === '1';
+    if (!authed) {
+      return new NextResponse(
+        JSON.stringify({ message: 'Unauthorized' }),
+        { status: 401, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
     const { folderName } = await request.json();
 
     if (!folderName || typeof folderName !== 'string') {

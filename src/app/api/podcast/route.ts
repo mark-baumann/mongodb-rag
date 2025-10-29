@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { list } from '@vercel/blob';
 import pdf from 'pdf-parse';
 
@@ -23,6 +24,10 @@ async function* textChunker(text: string): AsyncGenerator<string> {
 }
 
 export async function POST(req: NextRequest) {
+  const authed = cookies().get('auth')?.value === '1';
+  if (!authed) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
   console.log('Podcast generation request received');
   const { documentId } = await req.json();
   console.log(`Document ID: ${documentId}`);

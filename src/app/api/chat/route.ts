@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { ConversationalRetrievalQAChain } from 'langchain/chains';
 import { ChatOpenAI } from 'langchain/chat_models/openai';
 import { PromptTemplate } from 'langchain/prompts';
@@ -17,6 +18,10 @@ const formatHistory = (messages: Message[]): string =>
 
 export async function POST(req: Request) {
   try {
+    const authed = cookies().get('auth')?.value === '1';
+    if (!authed) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
     const body = await req.json();
     const messages: Message[] = body.messages ?? [];
     const documentId: string | undefined = body.documentId;
