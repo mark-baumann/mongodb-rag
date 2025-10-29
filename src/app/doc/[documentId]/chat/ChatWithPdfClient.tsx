@@ -85,7 +85,7 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
         )}
       </header>
 
-      <div className="relative flex-1 overflow-hidden">
+      <div className="relative flex-1">
         <div className="absolute inset-0 pointer-events-none opacity-10 bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.35),_transparent_55%)]" />
         <div className="relative flex h-full flex-col gap-4 px-4 py-4 md:px-6 md:py-6">
           <div className="chat-messages flex-1 overflow-y-auto pr-2" ref={containerRef}>

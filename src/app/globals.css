@@ -25,6 +25,7 @@
 
 html {
   height: 100%;
+  overscroll-behavior: none;
 }
 
 body {
@@ -36,6 +37,7 @@ body {
     )
     rgb(var(--background-start-rgb));
   overflow-x: hidden;
+  overscroll-behavior: none;
 }
 
 @layer utilities {

@@ -4,6 +4,7 @@ import NavBar from './component/navbar';
 
 import DeleteAllButton from './component/DeleteAllButton';
 import UploadDocuments from './component/UploadDocuments';
+import DocumentItem from './component/DocumentItem';
 
 const DOCUMENT_PREFIX = 'documents/';
 
@@ -57,32 +58,8 @@ const Home = async () => {
         </div>
         {documents.length > 0 ? (
           <ul className='space-y-3'>
-            {documents.map(({ name, directUrl, documentId }) => (
-              <li
-                key={documentId}
-                className='flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between'
-              >
-                <span className='font-medium text-gray-800 truncate'>{name}</span>
-                <div className='flex items-center gap-3 sm:justify-end'>
-                     {/*<a
-                    href={directUrl}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-                  >
-                    Ansehen
-                  </a> */}
-                  
-                  <a
-                    href={`/doc/${documentId}/chat`}
-                    target='_blank'
-                    rel='noopener noreferrer'
-                    className='inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
-                  >
-                    Ansehen
-                  </a>
-                </div>
-              </li>
+            {documents.map((doc) => (
+              <DocumentItem key={doc.documentId} document={doc} />
             ))}
           </ul>
         ) : (

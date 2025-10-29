@@ -94,7 +94,7 @@ export default function UploadDocuments() {
       {uploadProgress !== null && (
         <div className='fixed left-1/2 top-4 z-50 w-full max-w-sm -translate-x-1/2 rounded-lg bg-white p-4 shadow-lg ring-1 ring-black/10'>
           <div className='flex items-center justify-between text-xs font-semibold uppercase text-gray-700'>
-            <span>Upload</span>
+            <span>Hochladen</span>
             <span>{uploadProgress}%</span>
           </div>
           <div className='mt-2 h-2 w-full rounded-full bg-gray-200'>

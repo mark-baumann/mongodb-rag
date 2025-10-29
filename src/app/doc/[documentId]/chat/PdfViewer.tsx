@@ -24,7 +24,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
 
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
-          const viewport = page.getViewport({ scale: 1.5 });
+          const viewport = page.getViewport({ scale: 2, rotation: page.rotate });
           const canvas = canvasRefs.current[i - 1];
 
           if (canvas) {
