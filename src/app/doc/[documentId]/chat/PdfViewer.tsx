@@ -45,9 +45,16 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
                 const scale = 2;
                 const viewport = page.getViewport({ scale, rotation: page.rotate });
 
+                const parentWidth =
+                  pageContainer.parentElement?.clientWidth ??
+                  pageContainer.clientWidth ??
+                  window.innerWidth;
+                const aspectRatio = viewport.height / viewport.width;
+                const placeholderHeight = Math.max(parentWidth * aspectRatio, 120);
+
                 pageContainer.style.width = '100%';
                 pageContainer.style.maxWidth = `${viewport.width}px`;
-                pageContainer.style.height = 'auto';
+                pageContainer.style.minHeight = `${placeholderHeight}px`;
 
                 const canvas = document.createElement('canvas');
                 canvas.className = 'w-full h-auto';
@@ -75,6 +82,8 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
                   viewport: viewport,
                   textDivs: [],
                 });
+
+                pageContainer.style.minHeight = '';
               }
             }
           }
