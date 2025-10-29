@@ -117,7 +117,7 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
               return (
                 <div
                   key={message.id}
-                  className="flex w-full justify-start"
+                  className={`flex w-full ${isUser ? "justify-end" : "justify-start"}`}
                 >
                   <div
                     className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-lg shadow-black/20 ${

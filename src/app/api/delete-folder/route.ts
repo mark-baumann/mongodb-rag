@@ -26,35 +26,40 @@ export async function POST(request: Request) {
       );
     }
 
-    const folderPrefix = `${DOCUMENT_PREFIX}${trimmedFolderName}/`;
+    const collection = getCollection();
 
-    const { blobs } = await list({ prefix: folderPrefix });
-    const urlsToDelete = blobs.map((blob) => blob.url);
+    const documentsInFolder = await collection
+      .aggregate<{ _id: string }>([
+        { $match: { folderName: trimmedFolderName } },
+        { $group: { _id: '$documentId' } },
+      ])
+      .toArray();
+
+    const documentIds = documentsInFolder.map((doc) => doc._id).filter(Boolean);
+    const urlsToDelete: string[] = [];
+
+    const listAllBlobUrls = async (prefix: string) => {
+      let cursor: string | undefined;
+      do {
+        const { blobs, cursor: nextCursor } = await list({ prefix, cursor });
+        urlsToDelete.push(...blobs.map((blob) => blob.url));
+        cursor = nextCursor;
+      } while (cursor);
+    };
+
+    const folderPrefix = `${DOCUMENT_PREFIX}${trimmedFolderName}/`;
+    await listAllBlobUrls(folderPrefix);
+
+    for (const documentId of documentIds) {
+      await listAllBlobUrls(`${DOCUMENT_PREFIX}${documentId}/`);
+    }
 
     if (urlsToDelete.length > 0) {
       await del(urlsToDelete);
     }
 
-    const documentIds = new Set<string>();
-    for (const blob of blobs) {
-      const relativePath = blob.pathname.replace(DOCUMENT_PREFIX, '');
-      const segments = relativePath.split('/').filter(Boolean);
-      const lastSegment = segments[segments.length - 1];
-
-      // Skip placeholder file entries or top-level markers
-      if (lastSegment === '.placeholder' || segments.length < 3) {
-        continue;
-      }
-
-      const documentId = segments[segments.length - 2];
-      if (documentId) {
-        documentIds.add(documentId);
-      }
-    }
-
-    if (documentIds.size > 0) {
-      const collection = getCollection();
-      await collection.deleteMany({ documentId: { $in: Array.from(documentIds) } });
+    if (documentIds.length > 0) {
+      await collection.deleteMany({ documentId: { $in: documentIds } });
     }
 
     return NextResponse.json(
