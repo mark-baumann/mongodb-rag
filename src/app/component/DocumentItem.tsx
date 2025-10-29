@@ -19,6 +19,7 @@ export default function DocumentItem({ document, folders }: DocumentItemProps) {
   const [isMoving, setIsMoving] = useState(false);
   const [targetFolder, setTargetFolder] = useState(document.folder ?? '');
   const folderOptionsId = `folder-options-${document.documentId}`;
+  const hasFolder = Boolean(document.folder && document.folder.trim().length > 0);
 
   const handleDelete = async () => {
     if (window.confirm(`Bist du sicher, dass du das Dokument "${document.name}" löschen möchtest?`)) {
@@ -91,7 +92,12 @@ export default function DocumentItem({ document, folders }: DocumentItemProps) {
 
   return (
     <li className='flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between relative'>
-      <span className='font-medium text-gray-800 truncate'>{document.name}</span>
+      <div className='flex flex-col sm:flex-1'>
+        <span className='font-medium text-gray-800 truncate'>{document.name}</span>
+        {hasFolder && (
+          <span className='text-xs text-gray-500 mt-1'>Ordner: {document.folder}</span>
+        )}
+      </div>
       <div className='flex items-center gap-3 sm:justify-end'>
         <a
           href={`/doc/${document.documentId}/chat`}
@@ -101,12 +107,22 @@ export default function DocumentItem({ document, folders }: DocumentItemProps) {
         >
           Ansehen
         </a>
-        <button
-          onClick={handleOpenMoveModal}
-          className='inline-flex items-center rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
-        >
-          Zum Ordner hinzufügen
-        </button>
+        {!hasFolder && (
+          <button
+            onClick={handleOpenMoveModal}
+            className='inline-flex items-center rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
+          >
+            Zum Ordner hinzufügen
+          </button>
+        )}
+        {hasFolder && (
+          <button
+            onClick={handleOpenMoveModal}
+            className='inline-flex items-center rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
+          >
+            Ordner wechseln
+          </button>
+        )}
         <button
           onClick={handleDelete}
           className='inline-flex items-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2'

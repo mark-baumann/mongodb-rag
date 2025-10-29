@@ -126,7 +126,7 @@ const Home = async () => {
       <div className='max-w-5xl mx-auto p-8'>
         <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
           <h1 className='text-3xl font-bold text-gray-900'>Dokumente</h1>
-          <div className='flex flex-nowrap items-center gap-4 justify-end overflow-x-auto'>
+          <div className='flex flex-wrap items-center gap-3 justify-start sm:flex-nowrap sm:justify-end sm:gap-4 w-full sm:w-auto'>
             <CreateFolderButton />
             <UploadDocuments />
             {(documents.length > 0 || folders.length > 0) && <DeleteAllButton />}
@@ -134,15 +134,22 @@ const Home = async () => {
         </div>
         {(documents.length > 0 || folders.length > 0) ? (
           <ul className='space-y-3'>
-            {folders.map((folderName) => (
-              <FolderItem key={folderName} folderName={folderName}>
-                <ul className="space-y-2 pt-2">
-                  {(documentsByFolder[folderName] || []).map(doc => (
-                    <DocumentItem key={doc.pathname} document={doc} folders={folders} />
-                  ))}
-                </ul>
-              </FolderItem>
-            ))}
+            {folders.map((folderName) => {
+              const folderDocuments = documentsByFolder[folderName] || [];
+              return (
+                <FolderItem
+                  key={folderName}
+                  folderName={folderName}
+                  documentCount={folderDocuments.length}
+                >
+                  <ul className="space-y-2 pt-2">
+                    {folderDocuments.map(doc => (
+                      <DocumentItem key={doc.pathname} document={doc} folders={folders} />
+                    ))}
+                  </ul>
+                </FolderItem>
+              );
+            })}
             {rootDocuments.map((doc) => (
               <DocumentItem key={doc.pathname} document={doc} folders={folders} />
             ))}
