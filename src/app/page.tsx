@@ -14,6 +14,7 @@ type DocumentListItem = {
   url: string;
   documentId: string;
   directUrl: string;
+  pathname: string;
 };
 
 export const dynamic = 'force-dynamic';
@@ -29,10 +30,12 @@ const Home = async () => {
     const documentBlobs: typeof blobs = [];
 
     for (const blob of blobs) {
+      const path = blob.pathname.replace(DOCUMENT_PREFIX, '');
+      const pathParts = path.split('/');
+
       if (blob.pathname.endsWith('/.placeholder')) {
-        const folderPath = blob.pathname.substring(0, blob.pathname.lastIndexOf('/'));
-        folderPaths.add(folderPath.replace(DOCUMENT_PREFIX, ''));
-      } else {
+        folderPaths.add(pathParts.slice(0, -1).join('/'));
+      } else if (pathParts.length > 1) { // It's a document
         documentBlobs.push(blob);
       }
     }
@@ -40,19 +43,21 @@ const Home = async () => {
     folders = Array.from(folderPaths);
 
     documents = documentBlobs
-      .filter((blob) => blob.pathname.startsWith(DOCUMENT_PREFIX))
       .map((blob) => {
-        const pathParts = blob.pathname.replace(DOCUMENT_PREFIX, '').split('/');
+        const path = blob.pathname.replace(DOCUMENT_PREFIX, '');
+        const pathParts = path.split('/');
+
         if (pathParts.length < 2) return null;
 
-        const [documentId, ...nameParts] = pathParts;
-        const name = nameParts.join('/');
+        const name = pathParts[pathParts.length - 1];
+        const documentId = pathParts[pathParts.length - 2];
 
         return {
           name,
           url: `/doc/${documentId}`,
           documentId,
           directUrl: blob.url,
+          pathname: blob.pathname,
         };
       })
       .filter((item): item is DocumentListItem => Boolean(item));

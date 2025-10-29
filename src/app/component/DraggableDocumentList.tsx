@@ -35,7 +35,7 @@ function SortableItem(props: any) {
 export default function DraggableDocumentList({ documents, folders }: { documents: any[], folders: any[] }) {
   const [items, setItems] = useState(() => {
     const folderItems = folders.map(name => ({ id: `folder-${name}`, name, type: 'folder' }));
-    const documentItems = documents.map(doc => ({ ...doc, id: doc.documentId, type: 'document' }));
+    const documentItems = documents.map(doc => ({ ...doc, id: doc.pathname, type: 'document' }));
     return [...folderItems, ...documentItems];
   });
 
@@ -54,8 +54,7 @@ export default function DraggableDocumentList({ documents, folders }: { document
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              documentId: activeItem.documentId,
-              name: activeItem.name,
+              pathname: activeItem.pathname,
               folderName: overItem.name,
             }),
           });

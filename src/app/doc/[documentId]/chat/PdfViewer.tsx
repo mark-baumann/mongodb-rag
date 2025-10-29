@@ -37,7 +37,7 @@ const PdfViewer: React.FC<PdfViewerProps> = ({ url }) => {
       (entries) => {
         entries.forEach(async (entry) => {
           if (entry.isIntersecting) {
-            const pageIndex = parseInt(entry.target.dataset.pageNumber || '0', 10);
+            const pageIndex = parseInt((entry.target as HTMLElement).dataset.pageNumber || '0', 10);
             if (pageIndex > 0 && pdfRef.current) {
               const pageContainer = pageRefs.current[pageIndex - 1];
               if (pageContainer && pageContainer.childElementCount === 0) { // Render only once
