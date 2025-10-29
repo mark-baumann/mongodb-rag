@@ -18,11 +18,13 @@ export async function POST(request: Request) {
     const trimmedFolder = typeof folderName === 'string' ? folderName.trim() : '';
     const collection = getCollection();
 
+    // Store folder assignment inside metadata alongside documentId
     const updatePayload = trimmedFolder
-      ? { $set: { folderName: trimmedFolder } }
-      : { $unset: { folderName: '' } };
+      ? { $set: { 'metadata.folderName': trimmedFolder } }
+      : { $unset: { 'metadata.folderName': '' } };
 
-    const updateResult = await collection.updateMany({ documentId }, updatePayload);
+    // Match by nested metadata.documentId (how LangChain stores metadata)
+    const updateResult = await collection.updateMany({ 'metadata.documentId': documentId }, updatePayload);
 
     if (updateResult.matchedCount === 0) {
       return new NextResponse(JSON.stringify({ message: 'Document metadata not found' }), {

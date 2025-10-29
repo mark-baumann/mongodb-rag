@@ -79,8 +79,8 @@ const Home = async () => {
       const collection = getCollection();
       const aggregated = await collection
         .aggregate<{ _id: string; folderName?: string }>([
-          { $match: { documentId: { $in: documentIds } } },
-          { $group: { _id: '$documentId', folderName: { $first: '$folderName' } } },
+          { $match: { 'metadata.documentId': { $in: documentIds } } },
+          { $group: { _id: '$metadata.documentId', folderName: { $first: '$metadata.folderName' } } },
         ])
         .toArray();
 

@@ -30,8 +30,8 @@ export async function POST(request: Request) {
 
     const documentsInFolder = await collection
       .aggregate<{ _id: string }>([
-        { $match: { folderName: trimmedFolderName } },
-        { $group: { _id: '$documentId' } },
+        { $match: { 'metadata.folderName': trimmedFolderName } },
+        { $group: { _id: '$metadata.documentId' } },
       ])
       .toArray();
 
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     }
 
     if (documentIds.length > 0) {
-      await collection.deleteMany({ documentId: { $in: documentIds } });
+      await collection.deleteMany({ 'metadata.documentId': { $in: documentIds } });
     }
 
     return NextResponse.json(
