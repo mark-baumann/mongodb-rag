@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     console.log('Calling OpenAI API...');
     const speech = await openai.audio.speech.create({
       model: 'tts-1',
-      voice: 'rachel',
+      voice: 'alloy',
       input: text,
     });
 
