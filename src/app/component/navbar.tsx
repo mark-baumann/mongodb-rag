@@ -34,6 +34,8 @@ const NavBar: React.FC = () => {
     closeSettings();
   };
 
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
+
   const handleCreatePodcast = async () => {
     console.log("Pathname:", pathname);
     setIsCreatingPodcast(true);
@@ -87,16 +89,40 @@ const NavBar: React.FC = () => {
         throw new Error(errorMessage);
       }
 
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-      const audio = new Audio(audioUrl);
+      const reader = response.body!.getReader();
+      const audio = new Audio();
+      setAudio(audio);
+      const mediaSource = new MediaSource();
+      audio.src = URL.createObjectURL(mediaSource);
       audio.play();
+
+      mediaSource.addEventListener('sourceopen', () => {
+        const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+        function push() {
+          reader.read().then(({ done, value }) => {
+            if (done) {
+              mediaSource.endOfStream();
+              return;
+            }
+            sourceBuffer.appendBuffer(value);
+            push();
+          });
+        }
+        push();
+      });
     } catch (error) {
       console.error('Error creating podcast:', error);
       const message = error instanceof Error ? error.message : 'Failed to create podcast.';
       alert(message);
     } finally {
       setIsCreatingPodcast(false);
+    }
+  };
+
+  const stopPodcast = () => {
+    if (audio) {
+      audio.pause();
+      setAudio(null);
     }
   };
 
@@ -162,6 +188,12 @@ const NavBar: React.FC = () => {
                 {isCreatingPodcast ? 'Erstelle Podcast...' : 'Erstelle Podcast (Beta)'}
               </button>
             )}
+            {audio && (
+              <div className="flex items-center gap-2">
+                <audio controls src={audio.src}></audio>
+                <button onClick={stopPodcast}>Stop</button>
+              </div>
+            )}
             <Link
               href="/settings"
               className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
@@ -191,6 +223,12 @@ const NavBar: React.FC = () => {
                   <Mic className="h-4 w-4" />
                   {isCreatingPodcast ? 'Erstelle Podcast...' : 'Erstelle Podcast (Beta)'}
                 </button>
+              )}
+              {audio && (
+                <div className="flex items-center gap-2">
+                  <audio controls src={audio.src}></audio>
+                  <button onClick={stopPodcast}>Stop</button>
+                </div>
               )}
               <Link
                 href="/settings"
