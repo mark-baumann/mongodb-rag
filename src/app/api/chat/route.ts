@@ -54,6 +54,7 @@ export async function POST(req: Request) {
 
     const store = vectorStore(apiKey);
     const vectorCollection = documentId ? getCollection() : null;
+    let previewDocs: Document[] = [];
 
     // Pre-flight check for embeddings
     if (documentId && vectorCollection) {
@@ -73,11 +74,55 @@ export async function POST(req: Request) {
         );
       }
 
-      previewDocs = await store.similaritySearch(
+      // Sample a handful of chunks directly from the collection to ensure we have context even
+      // when the initial similarity search struggles (e.g. very general questions).
+      const seedDocsRaw = await vectorCollection
+        .find(
+          {
+            documentId,
+          },
+          {
+            projection: {
+              text: 1,
+              metadata: 1,
+              source: 1,
+            },
+          },
+        )
+        .limit(5)
+        .toArray();
+
+      previewDocs = seedDocsRaw
+        .map((item) => {
+          const text = typeof item.text === 'string' ? item.text.trim() : '';
+          if (!text) return null;
+
+          const metadata =
+            item.metadata && typeof item.metadata === 'object'
+              ? item.metadata
+              : ({} as Record<string, unknown>);
+
+          if (!metadata.documentId) {
+            metadata.documentId = documentId;
+          }
+          if (typeof item.source === 'string') {
+            metadata.source = item.source;
+          }
+
+          return new Document({
+            pageContent: text,
+            metadata,
+          });
+        })
+        .filter((doc): doc is Document => doc !== null);
+
+      // Also run a similarity search for additional relevant chunks.
+      const semanticPreview = await store.similaritySearch(
         question,
-        40,
+        20,
         documentPostFilter(documentId) as any,
       );
+      previewDocs.push(...semanticPreview);
       console.log('Preview relevant docs', {
         documentId,
         previewCount: previewDocs.length,
