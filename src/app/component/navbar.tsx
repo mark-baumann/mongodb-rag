@@ -53,7 +53,38 @@ const NavBar: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create podcast');
+        let errorMessage = 'Failed to create podcast';
+        const contentType = response.headers.get('Content-Type') || '';
+        if (contentType.includes('application/json')) {
+          try {
+            const data = await response.json();
+            const parts: string[] = [];
+            if (typeof data?.message === 'string' && data.message.trim()) {
+              parts.push(data.message.trim());
+            }
+            if (typeof data?.details === 'string' && data.details.trim()) {
+              parts.push(data.details.trim());
+            }
+            if (typeof data?.status === 'number') {
+              parts.push(`Status: ${data.status}`);
+            }
+            if (parts.length > 0) {
+              errorMessage = parts.join(' | ');
+            }
+          } catch (parseError) {
+            console.error('Failed to parse error response from /api/podcast', parseError);
+          }
+        } else {
+          try {
+            const text = await response.text();
+            if (text.trim()) {
+              errorMessage = text.trim();
+            }
+          } catch (textError) {
+            console.error('Failed to read error response from /api/podcast', textError);
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const audioBlob = await response.blob();
@@ -62,7 +93,8 @@ const NavBar: React.FC = () => {
       audio.play();
     } catch (error) {
       console.error('Error creating podcast:', error);
-      alert('Failed to create podcast.');
+      const message = error instanceof Error ? error.message : 'Failed to create podcast.';
+      alert(message);
     } finally {
       setIsCreatingPodcast(false);
     }

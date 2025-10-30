@@ -44,6 +44,11 @@ export const getCollection = (): Collection => {
   return cachedCollection;
 };
 
+export const getMetadataCollection = (): Collection => {
+  const client = getMongoClient();
+  return client.db(dbName).collection('documents_metadata');
+};
+
 export function getEmbeddingsTransformer(openAiApiKey?: string): OpenAIEmbeddings {
   if (openAiApiKey) {
     return new OpenAIEmbeddings({ openAIApiKey: openAiApiKey });

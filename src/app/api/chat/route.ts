@@ -5,7 +5,17 @@ import { ChatOpenAI } from 'langchain/chat_models/openai';
 import { PromptTemplate } from 'langchain/prompts';
 import { LangChainStream, Message, StreamingTextResponse } from 'ai';
 
-import { vectorStore } from '@/utils/openai';
+import { Document } from '@langchain/core/documents';
+
+import { getCollection, vectorStore } from '@/utils/openai';
+
+const documentPostFilter = (documentId: string) => ({
+  postFilterPipeline: [
+    {
+      $match: { documentId },
+    },
+  ],
+});
 
 const formatHistory = (messages: Message[]): string =>
   messages
@@ -43,48 +53,125 @@ export async function POST(req: Request) {
     }
 
     const store = vectorStore(apiKey);
+    const vectorCollection = documentId ? getCollection() : null;
 
     // Pre-flight check for embeddings
-    if (documentId) {
-      // Fetch a few docs and filter in-app to avoid filter syntax issues.
-      const preflightCheck = await store.similaritySearch("a", 5);
-      const relevantDocs = preflightCheck.filter(doc => doc.metadata?.documentId === documentId);
+    if (documentId && vectorCollection) {
+      const embeddingsCount = await vectorCollection.countDocuments({
+        documentId,
+      });
+      console.log('Embedding preflight check', { documentId, embeddingsCount });
 
-      if (relevantDocs.length === 0) {
+      if (embeddingsCount === 0) {
         return NextResponse.json(
           {
-            error: "NO_EMBEDDINGS_FOUND",
-            message: "Für dieses Dokument konnten keine relevanten Inhalte gefunden werden. Möglicherweise müssen die Einbettungen neu generiert werden.",
+            error: 'NO_EMBEDDINGS_FOUND',
+            message:
+              'Für dieses Dokument konnten keine relevanten Inhalte gefunden werden. Möglicherweise müssen die Einbettungen neu generiert werden.',
           },
-          { status: 422 }
+          { status: 422 },
         );
       }
+
+      previewDocs = await store.similaritySearch(
+        question,
+        40,
+        documentPostFilter(documentId) as any,
+      );
+      console.log('Preview relevant docs', {
+        documentId,
+        previewCount: previewDocs.length,
+        totalFetched: previewDocs.length,
+        sampleMetadata: previewDocs.slice(0, 3).map((doc) => doc.metadata),
+      });
     }
 
     const { stream, handlers, writer } = LangChainStream();
 
-    const retriever = store.asRetriever({ k: 8 });
+    const retriever = store.asRetriever(
+      documentId ? { k: 8, filter: documentPostFilter(documentId) as any } : { k: 8 },
+    );
 
-    if (documentId) {
-      const originalGetRelevantDocuments = retriever.getRelevantDocuments.bind(retriever);
-      retriever.getRelevantDocuments = async (query, runManager) => {
-        const docs = await originalGetRelevantDocuments(query, runManager);
-        const filteredDocs = docs.filter(
-          (doc) => doc.metadata?.documentId && doc.metadata.documentId === documentId,
+    const originalGetRelevantDocuments = retriever.getRelevantDocuments.bind(retriever);
+    retriever.getRelevantDocuments = async (query, runManager) => {
+      const docs = await originalGetRelevantDocuments(query, runManager);
+      if (docs.length > 0) {
+        return docs;
+      }
+
+      if (documentId) {
+        const fallbackDocs = await store.similaritySearch(
+          query,
+          16,
+          documentPostFilter(documentId) as any,
         );
-
-        if (filteredDocs.length > 0) {
-          return filteredDocs;
+        if (fallbackDocs.length > 0) {
+          console.log('Similarity fallback returned docs after initial miss', {
+            documentId,
+            count: fallbackDocs.length,
+          });
+          return fallbackDocs;
         }
+      }
 
-        const fallbackDocs = await store.similaritySearch(query, 12);
-        const filteredFallback = fallbackDocs.filter(
-          (doc) => doc.metadata?.documentId && doc.metadata.documentId === documentId,
-        );
+      if (previewDocs.length > 0) {
+        console.log('Using preview docs as fallback for retriever', {
+          documentId: documentId ?? null,
+          fallbackCount: previewDocs.length,
+        });
+        return previewDocs;
+      }
 
-        return filteredFallback;
-      };
-    }
+      if (documentId && vectorCollection) {
+        const textFallback = await vectorCollection
+          .find(
+            {
+              documentId,
+            },
+            {
+              projection: {
+                text: 1,
+                metadata: 1,
+                source: 1,
+              },
+            },
+          )
+          .limit(5)
+          .toArray();
+
+        if (textFallback.length > 0) {
+          console.log('Fallback to raw text chunks', {
+            documentId,
+            chunkCount: textFallback.length,
+          });
+          return textFallback
+            .map((item) => {
+              const text = typeof item.text === 'string' ? item.text.trim() : '';
+              if (!text) return null;
+
+              const metadata =
+                item.metadata && typeof item.metadata === 'object'
+                  ? item.metadata
+                  : ({} as Record<string, unknown>);
+
+              if (!metadata.documentId) {
+                metadata.documentId = documentId;
+              }
+              if (typeof item.source === 'string') {
+                metadata.source = item.source;
+              }
+
+              return new Document({
+                pageContent: text,
+                metadata,
+              });
+            })
+            .filter((doc): doc is Document => doc !== null);
+        }
+      }
+
+      return [];
+    };
 
     const chatHistory = formatHistory(messages.slice(0, -1));
 

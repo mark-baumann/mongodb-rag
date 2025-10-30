@@ -4,7 +4,7 @@ import pdf from 'pdf-parse';
 import { randomUUID } from 'crypto';
 import { put } from '@vercel/blob';
 
-import { getEmbeddingsTransformer, searchArgs } from '@/utils/openai';
+import { getEmbeddingsTransformer, searchArgs, getMetadataCollection } from '@/utils/openai';
 import { MongoDBAtlasVectorSearch } from '@langchain/community/vectorstores/mongodb_atlas';
 import { CharacterTextSplitter } from 'langchain/text_splitter';
 
@@ -54,6 +54,16 @@ export async function POST(req: NextRequest) {
       contentType: uploadedFile.type || 'application/pdf',
     });
     console.log('File uploaded to Vercel Blob:', blob.url);
+
+    // Save metadata to a separate collection first
+    const metadataCollection = getMetadataCollection();
+    await metadataCollection.insertOne({
+      _id: documentId,
+      name: fileName,
+      url: blob.url,
+      createdAt: new Date(),
+    });
+    console.log('Document metadata saved to metadata collection.');
 
     console.log('Parsing PDF...');
     const { text } = await pdf(fileBuffer);

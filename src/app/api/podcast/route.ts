@@ -26,7 +26,7 @@ async function* textChunker(text: string): AsyncGenerator<string> {
 export async function POST(req: NextRequest) {
   const authed = cookies().get('auth')?.value === '1';
   if (!authed) {
-    return new NextResponse('Unauthorized', { status: 401 });
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
   console.log('Podcast generation request received');
   const { documentId } = await req.json();
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   if (!documentId) {
     console.error('Missing documentId');
-    return new NextResponse('Missing documentId', { status: 400 });
+    return NextResponse.json({ message: 'Missing documentId' }, { status: 400 });
   }
 
   try {
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     const blob = (await list({ prefix: `${DOCUMENT_PREFIX}${documentId}/` })).blobs[0];
     if (!blob) {
       console.error('Document not found');
-      return new NextResponse('Document not found', { status: 404 });
+      return NextResponse.json({ message: 'Document not found' }, { status: 404 });
     }
     console.log(`Document found: ${blob.url}`);
 
@@ -56,12 +56,23 @@ export async function POST(req: NextRequest) {
     const text = data.text;
     console.log(`PDF parsed, text length: ${text.length}`);
 
+    if (!text.trim()) {
+      console.error('No textual content extracted from PDF');
+      return NextResponse.json(
+        { message: 'Das PDF enthält keinen auslesbaren Text für den Podcast.' },
+        { status: 400 },
+      );
+    }
+
     // 2. Call ElevenLabs API for each chunk
     console.log('Calling ElevenLabs API...');
     const elevenLabsApiKey = process.env.ELEVENLABS_API_KEY;
     if (!elevenLabsApiKey) {
       console.error('ElevenLabs API key not found');
-      return new NextResponse('ElevenLabs API key not found', { status: 500 });
+      return NextResponse.json(
+        { message: 'ELEVENLABS_API_KEY ist nicht gesetzt. Bitte trage den Schlüssel in den Umgebungsvariablen ein.' },
+        { status: 500 },
+      );
     }
 
     const audioChunks: Buffer[] = [];
@@ -88,13 +99,34 @@ export async function POST(req: NextRequest) {
 
       if (!elevenLabsResponse.ok) {
         console.error(`ElevenLabs API request failed with status ${elevenLabsResponse.status}`);
-        console.error(await elevenLabsResponse.text());
-        return new NextResponse('Failed to generate podcast', { status: 500 });
+        let errorBody: string | undefined;
+        try {
+          errorBody = await elevenLabsResponse.text();
+          console.error(errorBody);
+        } catch {
+          console.error('Failed to read ElevenLabs error body.');
+        }
+        return NextResponse.json(
+          {
+            message: 'Die ElevenLabs API hat die Anfrage abgelehnt.',
+            details: errorBody,
+            status: elevenLabsResponse.status,
+          },
+          { status: 502 },
+        );
       }
       console.log('ElevenLabs API request successful for chunk');
 
       const audioChunk = await elevenLabsResponse.arrayBuffer();
       audioChunks.push(Buffer.from(audioChunk));
+    }
+
+    if (audioChunks.length === 0) {
+      console.error('No audio chunks were generated');
+      return NextResponse.json(
+        { message: 'Es konnte kein Audio erzeugt werden.' },
+        { status: 500 },
+      );
     }
 
     const combinedAudio = Buffer.concat(audioChunks);
@@ -109,6 +141,8 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Error creating podcast:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    const message =
+      error instanceof Error ? error.message : 'Internal Server Error';
+    return NextResponse.json({ message }, { status: 500 });
   }
 }
