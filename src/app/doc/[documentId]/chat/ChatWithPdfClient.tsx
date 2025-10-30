@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "ai/react";
 import { X } from 'lucide-react';
+import { toast } from "react-toastify";
 
 import { useApiKey } from "../../../component/ApiKeyProvider";
 
@@ -19,6 +20,38 @@ const suggestions = [
   "Fasse jedes Kapitel zusammen",
 ];
 
+const ReEmbedToast = ({ documentId, closeToast }: { documentId: string; closeToast: () => void }) => {
+  const handleReEmbed = () => {
+    toast.promise(
+      fetch("/api/re-embed", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ documentId }),
+      }).then((res) => {
+        if (!res.ok) throw new Error("Failed to re-embed document");
+        return res.json();
+      }),
+      {
+        pending: "Re-embedding document...",
+        success: "Document re-embedded successfully! You can now ask questions about it.",
+        error: "Failed to re-embed document. Please try again.",
+      }
+    );
+    closeToast();
+  };
+
+  return (
+    <div>
+      <p className="mb-2">No embeddings found for this document.</p>
+      <button onClick={handleReEmbed} className="px-3 py-1 text-sm text-white bg-emerald-500 rounded hover:bg-emerald-600">
+        Re-generate Embeddings
+      </button>
+    </div>
+  );
+};
+
 export default function ChatWithPdfClient({ documentId, documentName, onClose }: Props) {
   const { apiKey } = useApiKey();
   const [waitingForAI, setWaitingForAI] = useState(false);
@@ -34,6 +67,20 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
   } = useChat({
     id: documentId,
     body: { documentId, apiKey: apiKey || undefined },
+    onError: (error) => {
+      try {
+        const errorBody = JSON.parse(error.message);
+        if (errorBody.error === "NO_EMBEDDINGS_FOUND") {
+          toast.error(({ closeToast }) => <ReEmbedToast documentId={documentId} closeToast={closeToast} />, {
+            autoClose: false,
+          });
+        } else {
+          toast.error("An unexpected error occurred. Please try again.");
+        }
+      } catch (e) {
+        toast.error("An unexpected error occurred. Please try again.");
+      }
+    },
   });
 
   const containerRef = useRef<HTMLDivElement | null>(null);

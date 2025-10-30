@@ -42,9 +42,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'No OpenAI API key provided' }, { status: 400 });
     }
 
+    const store = vectorStore(apiKey);
+
+    // Pre-flight check for embeddings
+    if (documentId) {
+      // Fetch a few docs and filter in-app to avoid filter syntax issues.
+      const preflightCheck = await store.similaritySearch("a", 5);
+      const relevantDocs = preflightCheck.filter(doc => doc.metadata?.documentId === documentId);
+
+      if (relevantDocs.length === 0) {
+        return NextResponse.json(
+          {
+            error: "NO_EMBEDDINGS_FOUND",
+            message: "Für dieses Dokument konnten keine relevanten Inhalte gefunden werden. Möglicherweise müssen die Einbettungen neu generiert werden.",
+          },
+          { status: 422 }
+        );
+      }
+    }
+
     const { stream, handlers, writer } = LangChainStream();
 
-    const store = vectorStore(apiKey);
     const retriever = store.asRetriever({ k: 8 });
 
     if (documentId) {
@@ -64,7 +82,7 @@ export async function POST(req: Request) {
           (doc) => doc.metadata?.documentId && doc.metadata.documentId === documentId,
         );
 
-        return filteredFallback.length > 0 ? filteredFallback : docs;
+        return filteredFallback;
       };
     }
 
