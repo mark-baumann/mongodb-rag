@@ -309,14 +309,18 @@ const NavBar: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Stimme/Person</label>
+                <label className="block text-sm font-medium mb-1">Stimme</label>
                 <select
                   className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
                   value={podcastVoice}
                   onChange={(e) => setPodcastVoice(e.target.value)}
                 >
                   <option value="alloy">Alloy</option>
-                  <option value="verse">Verse</option>
+                  <option value="echo">Echo</option>
+                  <option value="fable">Fable</option>
+                  <option value="onyx">Onyx</option>
+                  <option value="nova">Nova</option>
+                  <option value="shimmer">Shimmer</option>
                 </select>
               </div>
               <div>

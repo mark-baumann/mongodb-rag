@@ -3,6 +3,16 @@ import { cookies } from 'next/headers';
 import { getCollection } from '@/utils/openai';
 import OpenAI from 'openai';
 
+const AllowedVoices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'] as const;
+type TTSVoice = typeof AllowedVoices[number];
+const toVoice = (v: unknown): TTSVoice => {
+  if (typeof v !== 'string') return 'alloy';
+  const s = v.trim().toLowerCase();
+  return (AllowedVoices as readonly string[]).includes(s as any)
+    ? (s as TTSVoice)
+    : 'alloy';
+};
+
 const openai = new OpenAI();
 
 async function* textChunker(text: string, maxChunkSize: number): AsyncGenerator<string> {
@@ -113,7 +123,7 @@ export async function POST(req: NextRequest) {
           console.log(`Processing TTS chunk of length ${chunk.length}`);
           const speech = await openai.audio.speech.create({
             model: 'tts-1',
-            voice: typeof voice === 'string' && voice.trim() ? voice.trim() : 'alloy',
+            voice: toVoice(voice),
             input: chunk,
           });
 
@@ -129,7 +139,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'audio/mpeg',
         'X-Estimated-Duration': String(estimatedSeconds),
         'X-Podcast-Topic': topic ? String(topic) : 'Podcast',
-        'X-Voice': typeof voice === 'string' ? voice : 'alloy',
+        'X-Voice': toVoice(voice),
       },
     });
   } catch (error) {
