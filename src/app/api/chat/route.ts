@@ -215,6 +215,21 @@ export async function POST(req: Request) {
         }
       }
 
+      if (documentId) {
+        // If no documents are found, trigger a re-embedding
+        fetch(`${process.env.NEXT_PUBLIC_URL}/api/re-embed`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ documentId }),
+        });
+
+        throw new Error(
+          'Das Dokument wird neu indiziert. Bitte versuchen Sie es in Kürze erneut.',
+        );
+      }
+
       return [];
     };
 

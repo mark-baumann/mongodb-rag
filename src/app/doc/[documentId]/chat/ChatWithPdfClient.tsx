@@ -70,7 +70,9 @@ export default function ChatWithPdfClient({ documentId, documentName, onClose }:
     onError: (error) => {
       try {
         const errorBody = JSON.parse(error.message);
-        if (errorBody.error === "NO_EMBEDDINGS_FOUND" || errorBody.allowReembed) {
+        if (error.message === 'Das Dokument wird neu indiziert. Bitte versuchen Sie es in Kürze erneut.') {
+          toast.info(error.message);
+        } else if (errorBody.error === "NO_EMBEDDINGS_FOUND" || errorBody.allowReembed) {
           toast.error(({ closeToast }) => <ReEmbedToast documentId={documentId} closeToast={closeToast} />, {
             autoClose: false,
           });
