@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Settings2, Mic, Menu, X as CloseIcon, Lock } from 'lucide-react';
+import { Settings2, Mic, Menu, X as CloseIcon, Lock, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
@@ -18,6 +18,11 @@ const NavBar: React.FC = () => {
   const [isPodcastDialogOpen, setIsPodcastDialogOpen] = useState(false);
   const [podcastTopic, setPodcastTopic] = useState('');
   const [podcastMinutes, setPodcastMinutes] = useState<number>(5);
+  const [podcastVoice, setPodcastVoice] = useState<string>('alloy');
+  const [podcastPersona, setPodcastPersona] = useState<string>('');
+  const [playbackRate, setPlaybackRate] = useState<number>(1);
+  const [advancedOpen, setAdvancedOpen] = useState<boolean>(false);
+  const [ttsChunkSize, setTtsChunkSize] = useState<number>(4000);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -39,7 +44,7 @@ const NavBar: React.FC = () => {
 
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [durationLabel, setDurationLabel] = useState<string | null>(null);
+  // no extra duration label; rely on audio controls
 
   const handleOpenPodcastDialog = () => {
     setIsPodcastDialogOpen(true);
@@ -58,7 +63,6 @@ const NavBar: React.FC = () => {
   const startPodcastGeneration = async () => {
     console.log('Pathname:', pathname);
     setIsCreatingPodcast(true);
-    setDurationLabel(null);
     try {
       const match = pathname.match(/\/doc\/([a-fA-F0-9-]+)/);
       if (!match) {
@@ -75,6 +79,10 @@ const NavBar: React.FC = () => {
           documentId,
           topic: podcastTopic.trim(),
           targetMinutes: Number.isFinite(podcastMinutes) ? podcastMinutes : 5,
+          voice: podcastVoice,
+          persona: podcastPersona.trim(),
+          speakingRate: playbackRate === 1 ? 'normal' : playbackRate < 1 ? 'langsam' : 'schnell',
+          ttsChunkSize,
         }),
       });
 
@@ -113,15 +121,6 @@ const NavBar: React.FC = () => {
         throw new Error(errorMessage);
       }
 
-      // Optional: read estimated duration header
-      const est = response.headers.get('X-Estimated-Duration');
-      if (est) {
-        const seconds = Number(est);
-        if (Number.isFinite(seconds) && seconds > 0) {
-          setDurationLabel(`ca. ${formatSeconds(seconds)}`);
-        }
-      }
-
       const reader = response.body!.getReader();
       const chunks: Uint8Array[] = [];
       let totalBytes = 0;
@@ -145,12 +144,8 @@ const NavBar: React.FC = () => {
       }
 
       const audioEl = new Audio(url);
-      audioEl.addEventListener('loadedmetadata', () => {
-        if (!isNaN(audioEl.duration) && isFinite(audioEl.duration)) {
-          setDurationLabel(formatSeconds(audioEl.duration));
-        }
-      });
-      void audioEl.play().catch(() => {});
+      audioEl.playbackRate = playbackRate;
+      // do not autoplay; user can start via controls
       setAudio(audioEl);
       setAudioUrl(url);
       setIsPodcastDialogOpen(false);
@@ -222,15 +217,14 @@ const NavBar: React.FC = () => {
                 className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Mic className="h-4 w-4" />
-                {isCreatingPodcast ? 'Erstelle Podcast...' : 'Erstelle Podcast (Beta)'}
+                {isCreatingPodcast ? (
+                  <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Erstelle...</span>
+                ) : 'Erstelle Podcast (Beta)'}
               </button>
             )}
             {audio && (
               <div className="flex items-center gap-2">
                 <audio controls src={audio.src}></audio>
-                {durationLabel && (
-                  <span className="text-sm text-emerald-100">Dauer: {durationLabel}</span>
-                )}
               </div>
             )}
             <Link
@@ -260,15 +254,14 @@ const NavBar: React.FC = () => {
                   className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Mic className="h-4 w-4" />
-                  {isCreatingPodcast ? 'Erstelle Podcast...' : 'Erstelle Podcast (Beta)'}
+                  {isCreatingPodcast ? (
+                    <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Erstelle...</span>
+                  ) : 'Erstelle Podcast (Beta)'}
                 </button>
               )}
               {audio && (
                 <div className="flex items-center gap-2">
                   <audio controls src={audio.src}></audio>
-                  {durationLabel && (
-                    <span className="text-sm text-emerald-100">Dauer: {durationLabel}</span>
-                  )}
                 </div>
               )}
               <Link
@@ -300,15 +293,79 @@ const NavBar: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Länge (Minuten)</label>
+                <label className="block text-sm font-medium mb-1">Länge (Minuten, z. B. 4.56)</label>
                 <input
                   type="number"
-                  min={1}
-                  max={60}
+                  step={0.01}
+                  min={0.25}
+                  max={120}
                   value={podcastMinutes}
-                  onChange={(e) => setPodcastMinutes(parseInt(e.target.value || '5', 10))}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(',', '.');
+                    const num = parseFloat(v);
+                    setPodcastMinutes(Number.isFinite(num) ? num : 5);
+                  }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Stimme/Person</label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
+                  value={podcastVoice}
+                  onChange={(e) => setPodcastVoice(e.target.value)}
+                >
+                  <option value="alloy">Alloy</option>
+                  <option value="verse">Verse</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Persona/Stil (optional)</label>
+                <input
+                  type="text"
+                  value={podcastPersona}
+                  onChange={(e) => setPodcastPersona(e.target.value)}
+                  placeholder="z. B. sachlich, motivierend, humorvoll"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Sprechtempo</label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
+                  value={String(playbackRate)}
+                  onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
+                >
+                  <option value="0.9">Langsam (0.9x)</option>
+                  <option value="1">Normal (1.0x)</option>
+                  <option value="1.1">Leicht schneller (1.1x)</option>
+                  <option value="1.25">Schneller (1.25x)</option>
+                  <option value="1.5">Sehr schnell (1.5x)</option>
+                </select>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  className="text-sm text-emerald-700 hover:text-emerald-800"
+                  onClick={() => setAdvancedOpen(!advancedOpen)}
+                >
+                  {advancedOpen ? 'Erweiterte Optionen ausblenden' : 'Erweiterte Optionen anzeigen'}
+                </button>
+                {advancedOpen && (
+                  <div className="mt-2 space-y-2">
+                    <label className="block text-sm font-medium">Segmentgröße (fortgeschritten)</label>
+                    <input
+                      type="number"
+                      min={1000}
+                      max={8000}
+                      step={100}
+                      value={ttsChunkSize}
+                      onChange={(e) => setTtsChunkSize(parseInt(e.target.value || '4000', 10))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                    <p className="text-xs text-gray-500">Größe der TTS-Textsegmente. Kleinere Werte können Fehler vermeiden.</p>
+                  </div>
+                )}
               </div>
             </div>
             <div className="flex justify-end gap-3 mt-6">
@@ -324,7 +381,9 @@ const NavBar: React.FC = () => {
                 className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:bg-emerald-300"
                 disabled={isCreatingPodcast}
               >
-                {isCreatingPodcast ? 'Erstelle...' : 'Erstellen'}
+                {isCreatingPodcast ? (
+                  <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Erstelle...</span>
+                ) : 'Erstellen'}
               </button>
             </div>
           </div>

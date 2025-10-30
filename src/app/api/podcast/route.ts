@@ -28,7 +28,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
   console.log('Podcast generation request received');
-  const { documentId, topic = '', targetMinutes } = await req.json();
+  const {
+    documentId,
+    topic = '',
+    targetMinutes,
+    voice = 'alloy',
+    persona = '',
+    speakingRate = 'normal', // 'langsam' | 'normal' | 'schnell'
+    ttsChunkSize = 4000,
+    maxContextChars = 12000,
+  } = await req.json();
   console.log(`Document ID: ${documentId}`);
 
   if (!documentId) {
@@ -55,9 +64,12 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Build a podcast script first based on optional topic and target duration
-    const minutes = Number.isFinite(targetMinutes) ? Math.max(1, Math.min(60, Number(targetMinutes))) : 5;
+    const minutes =
+      typeof targetMinutes === 'number' && Number.isFinite(targetMinutes)
+        ? Math.max(0.25, Math.min(120, targetMinutes))
+        : 5;
     const approxWords = Math.round(minutes * 140); // ~140 wpm
-    const promptContext = text.length > 12000 ? text.slice(0, 12000) : text; // keep prompt bounded
+    const promptContext = text.length > maxContextChars ? text.slice(0, maxContextChars) : text; // keep prompt bounded
 
     let script = '';
     try {
@@ -77,7 +89,9 @@ export async function POST(req: NextRequest) {
               `Kontext (Auszug aus dem Dokument):\n\n${promptContext}`,
               '',
               topic ? `Thema/Wunschfokus: ${topic}` : '',
-              `Bitte schreibe ein zusammenhängendes Podcast-Monolog-Skript auf Deutsch mit etwa ${approxWords} Wörtern (≈ ${minutes} Minuten bei normaler Sprechgeschwindigkeit).`
+              persona ? `Persona/Stil: ${persona}` : '',
+              speakingRate ? `Sprechtempo: ${speakingRate} (Passe den Sprachfluss im Text entsprechend an — z. B. mit Übergängen, Pausenhinweisen).` : '',
+              `Bitte schreibe ein zusammenhängendes Podcast-Monolog-Skript auf Deutsch mit etwa ${approxWords} Wörtern (≈ ${minutes.toFixed(2)} Minuten bei normaler Sprechgeschwindigkeit).`
             ].filter(Boolean).join('\n')
           },
         ],
@@ -94,11 +108,12 @@ export async function POST(req: NextRequest) {
     const estimatedSeconds = Math.round((script.split(/\s+/).length / 140) * 60);
     const readableStream = new ReadableStream({
       async start(controller) {
-        for await (const chunk of textChunker(script, 4000)) {
+        const size = typeof ttsChunkSize === 'number' && ttsChunkSize > 500 ? Math.min(ttsChunkSize, 8000) : 4000;
+        for await (const chunk of textChunker(script, size)) {
           console.log(`Processing TTS chunk of length ${chunk.length}`);
           const speech = await openai.audio.speech.create({
             model: 'tts-1',
-            voice: 'alloy',
+            voice: typeof voice === 'string' && voice.trim() ? voice.trim() : 'alloy',
             input: chunk,
           });
 
@@ -114,6 +129,7 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'audio/mpeg',
         'X-Estimated-Duration': String(estimatedSeconds),
         'X-Podcast-Topic': topic ? String(topic) : 'Podcast',
+        'X-Voice': typeof voice === 'string' ? voice : 'alloy',
       },
     });
   } catch (error) {
