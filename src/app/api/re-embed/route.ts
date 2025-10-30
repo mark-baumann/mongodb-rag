@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const metadataCollection = getMetadataCollection();
 
     // 1. Locate document metadata (fall back to blob listing if missing)
-    const docMetadata = await metadataCollection.findOne({ _id: documentId });
+    const docMetadata = await metadataCollection.findOne({ _id: documentId as unknown as never });
     let fileUrl = docMetadata?.url as string | undefined;
     let fileName = docMetadata?.name as string | undefined;
 
