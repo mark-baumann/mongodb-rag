@@ -11,10 +11,21 @@ dotenv.config();
 let embeddingsInstance: OpenAIEmbeddings | null = null;
 let cachedClient: MongoClient | null = null;
 let cachedCollection: Collection | null = null;
+let cachedMetadataCollection: Collection<DocumentMetadata> | null = null;
 
 const DEFAULT_NAMESPACE = 'chatter.training_data';
 const namespace = process.env.MONGODB_NAMESPACE ?? DEFAULT_NAMESPACE;
 const [dbName, collectionName] = namespace.split('.');
+
+type DocumentMetadata = {
+  _id: string;
+  name: string;
+  url: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  folderName?: string;
+  [key: string]: unknown;
+};
 
 export const getMongoClient = (): MongoClient => {
   if (cachedClient) {
@@ -44,9 +55,13 @@ export const getCollection = (): Collection => {
   return cachedCollection;
 };
 
-export const getMetadataCollection = (): Collection => {
+export const getMetadataCollection = (): Collection<DocumentMetadata> => {
+  if (cachedMetadataCollection) {
+    return cachedMetadataCollection;
+  }
   const client = getMongoClient();
-  return client.db(dbName).collection('documents_metadata');
+  cachedMetadataCollection = client.db(dbName).collection<DocumentMetadata>('documents_metadata');
+  return cachedMetadataCollection;
 };
 
 export function getEmbeddingsTransformer(openAiApiKey?: string): OpenAIEmbeddings {
