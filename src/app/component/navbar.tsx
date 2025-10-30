@@ -23,6 +23,10 @@ const NavBar: React.FC = () => {
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [advancedOpen, setAdvancedOpen] = useState<boolean>(false);
   const [ttsChunkSize, setTtsChunkSize] = useState<number>(4000);
+  const [minutesPreset, setMinutesPreset] = useState<string>('5');
+  const [showCustomMinutes, setShowCustomMinutes] = useState<boolean>(false);
+  const [stylePreset, setStylePreset] = useState<string>('sachlich');
+  const [showCustomStyle, setShowCustomStyle] = useState<boolean>(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
 
@@ -80,7 +84,7 @@ const NavBar: React.FC = () => {
           topic: podcastTopic.trim(),
           targetMinutes: Number.isFinite(podcastMinutes) ? podcastMinutes : 5,
           voice: podcastVoice,
-          persona: podcastPersona.trim(),
+          persona: showCustomStyle ? podcastPersona.trim() : stylePreset,
           speakingRate: playbackRate === 1 ? 'normal' : playbackRate < 1 ? 'langsam' : 'schnell',
           ttsChunkSize,
         }),
@@ -224,7 +228,7 @@ const NavBar: React.FC = () => {
             )}
             {audio && (
               <div className="flex items-center gap-2">
-                <audio controls src={audio.src}></audio>
+                <audio controls preload="metadata" src={audio.src}></audio>
               </div>
             )}
             <Link
@@ -261,7 +265,7 @@ const NavBar: React.FC = () => {
               )}
               {audio && (
                 <div className="flex items-center gap-2">
-                  <audio controls src={audio.src}></audio>
+                  <audio controls preload="metadata" src={audio.src}></audio>
                 </div>
               )}
               <Link
@@ -293,20 +297,50 @@ const NavBar: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Länge (Minuten, z. B. 4.56)</label>
-                <input
-                  type="number"
-                  step={0.01}
-                  min={0.25}
-                  max={120}
-                  value={podcastMinutes}
+                <label className="block text-sm font-medium mb-1">Länge (Minuten)</label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
+                  value={minutesPreset}
                   onChange={(e) => {
-                    const v = e.target.value.replace(',', '.');
-                    const num = parseFloat(v);
-                    setPodcastMinutes(Number.isFinite(num) ? num : 5);
+                    const val = e.target.value;
+                    setMinutesPreset(val);
+                    if (val === 'custom') {
+                      setShowCustomMinutes(true);
+                    } else {
+                      setShowCustomMinutes(false);
+                      const num = parseFloat(val);
+                      if (!Number.isNaN(num)) setPodcastMinutes(num);
+                    }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
+                >
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="4.5">4.5</option>
+                  <option value="4.56">4.56</option>
+                  <option value="5">5</option>
+                  <option value="7.5">7.5</option>
+                  <option value="10">10</option>
+                  <option value="15">15</option>
+                  <option value="custom">Benutzerdefiniert…</option>
+                </select>
+                {showCustomMinutes && (
+                  <input
+                    type="number"
+                    step={0.01}
+                    min={0.25}
+                    max={120}
+                    value={podcastMinutes}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(',', '.');
+                      const num = parseFloat(v);
+                      setPodcastMinutes(Number.isFinite(num) ? num : 5);
+                    }}
+                    placeholder="z. B. 4.56"
+                    className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Stimme</label>
@@ -324,14 +358,35 @@ const NavBar: React.FC = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Persona/Stil (optional)</label>
-                <input
-                  type="text"
-                  value={podcastPersona}
-                  onChange={(e) => setPodcastPersona(e.target.value)}
-                  placeholder="z. B. sachlich, motivierend, humorvoll"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
+                <label className="block text-sm font-medium mb-1">Stil</label>
+                <select
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
+                  value={stylePreset}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setStylePreset(val);
+                    setShowCustomStyle(val === 'custom');
+                  }}
+                >
+                  <option value="sachlich">Sachlich</option>
+                  <option value="erklärend">Erklärend</option>
+                  <option value="freundlich">Freundlich</option>
+                  <option value="analytisch">Analytisch</option>
+                  <option value="humorvoll">Humorvoll</option>
+                  <option value="motivierend">Motivierend</option>
+                  <option value="erzählerisch">Erzählerisch</option>
+                  <option value="technisch">Technisch</option>
+                  <option value="custom">Benutzerdefiniert…</option>
+                </select>
+                {showCustomStyle && (
+                  <input
+                    type="text"
+                    value={podcastPersona}
+                    onChange={(e) => setPodcastPersona(e.target.value)}
+                    placeholder="Eigener Stil, z. B. journalistisch, locker, visionär"
+                    className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md"
+                  />
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Sprechtempo</label>
