@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
   console.log('Podcast generation request received');
-  const { documentId } = await req.json();
+  const { documentId, topic = '', targetMinutes } = await req.json();
   console.log(`Document ID: ${documentId}`);
 
   if (!documentId) {
@@ -54,10 +54,48 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 2. Build a podcast script first based on optional topic and target duration
+    const minutes = Number.isFinite(targetMinutes) ? Math.max(1, Math.min(60, Number(targetMinutes))) : 5;
+    const approxWords = Math.round(minutes * 140); // ~140 wpm
+    const promptContext = text.length > 12000 ? text.slice(0, 12000) : text; // keep prompt bounded
+
+    let script = '';
+    try {
+      console.log('Generating podcast script via Chat Completions...');
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        temperature: 0.7,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Du bist ein professioneller deutschsprachiger Podcast-Autor. Verfasse ein natürlich klingendes, gesprochenes Skript. Keine Aufzählungen, keine Überschriften, keine Markdown-Formatierung. Verwende nur Fakten aus dem Kontext. Wenn Informationen fehlen, spekuliere nicht.',
+          },
+          {
+            role: 'user',
+            content: [
+              `Kontext (Auszug aus dem Dokument):\n\n${promptContext}`,
+              '',
+              topic ? `Thema/Wunschfokus: ${topic}` : '',
+              `Bitte schreibe ein zusammenhängendes Podcast-Monolog-Skript auf Deutsch mit etwa ${approxWords} Wörtern (≈ ${minutes} Minuten bei normaler Sprechgeschwindigkeit).`
+            ].filter(Boolean).join('\n')
+          },
+        ],
+        max_tokens: 4000,
+      });
+      script = (completion.choices?.[0]?.message?.content ?? '').toString().trim();
+      console.log(`Script length: ${script.length}`);
+    } catch (scriptError) {
+      console.error('Failed to generate podcast script, falling back to raw text excerpt.', scriptError);
+      script = text.slice(0, 8000);
+    }
+
+    // 3. Convert the script to audio (streaming back to the client)
+    const estimatedSeconds = Math.round((script.split(/\s+/).length / 140) * 60);
     const readableStream = new ReadableStream({
       async start(controller) {
-        for await (const chunk of textChunker(text, 4000)) {
-          console.log(`Processing chunk of length ${chunk.length}`);
+        for await (const chunk of textChunker(script, 4000)) {
+          console.log(`Processing TTS chunk of length ${chunk.length}`);
           const speech = await openai.audio.speech.create({
             model: 'tts-1',
             voice: 'alloy',
@@ -74,6 +112,8 @@ export async function POST(req: NextRequest) {
     return new NextResponse(readableStream, {
       headers: {
         'Content-Type': 'audio/mpeg',
+        'X-Estimated-Duration': String(estimatedSeconds),
+        'X-Podcast-Topic': topic ? String(topic) : 'Podcast',
       },
     });
   } catch (error) {
