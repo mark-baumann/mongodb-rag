@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { MessageSquare } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import NavBar from "../../../component/navbar";
+import CreatePodcastButton from "../../../component/CreatePodcastButton";
 
 const PdfViewer = dynamic(() => import('./PdfViewer'), { ssr: false });
 const ChatWithPdfClient = dynamic(() => import('./ChatWithPdfClient'), { ssr: false });
@@ -35,17 +36,19 @@ const DocumentChatShell = ({ viewerUrl, documentId, documentName }: DocumentChat
       <div className="relative flex-1 bg-slate-900 overflow-y-auto">
         <PdfViewer url={viewerUrl} />
 
-        {!isChatOpen && (
-          <div className="fixed bottom-6 right-6 z-10">
+        <div className="fixed bottom-6 right-6 z-10 flex flex-col items-end gap-3">
+          {!isChatOpen && (
             <button
               type="button"
               onClick={() => setIsChatOpen(true)}
               className="rounded-full bg-emerald-500 p-3 text-white shadow-lg transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+              title="Chat öffnen"
             >
               <MessageSquare size={24} />
             </button>
-          </div>
-        )}
+          )}
+          <CreatePodcastButton documentId={documentId} />
+        </div>
 
         {isChatOpen && (
           <div className="fixed bottom-0 right-0 z-20 w-full h-full md:h-[calc(100vh-8rem)] md:max-w-md bg-slate-900 rounded-lg shadow-2xl md:bottom-6 md:right-6">

@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import CreatePodcastButton from './CreatePodcastButton';
 
 interface DocumentItemProps {
   document: {
@@ -99,6 +100,7 @@ export default function DocumentItem({ document, folders }: DocumentItemProps) {
         )}
       </div>
       <div className='flex items-center gap-3 sm:justify-end'>
+        <CreatePodcastButton documentId={document.documentId} />
         <a
           href={`/doc/${document.documentId}/chat`}
           target='_blank'
