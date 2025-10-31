@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { getCollection } from '@/utils/openai';
+import { getCollection, getMongoClient } from '@/utils/openai';
 import OpenAI from 'openai';
 import { list, put } from '@vercel/blob';
 
@@ -15,6 +15,8 @@ const toVoice = (v: unknown): TTSVoice => {
 };
 
 const openai = new OpenAI();
+
+export const runtime = 'nodejs';
 
 async function* textChunker(text: string, maxChunkSize: number): AsyncGenerator<string> {
   let currentChunk = '';
@@ -57,6 +59,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Ensure MongoDB connection is healthy
+    try {
+      await getMongoClient().db('admin').command({ ping: 1 });
+    } catch (e) {
+      console.warn('MongoDB ping failed before query', e);
+    }
+
     // 1. Get document content from embeddings
     console.log('Fetching document from vector store...');
     const vectorCollection = getCollection();

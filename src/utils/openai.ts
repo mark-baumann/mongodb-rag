@@ -41,6 +41,14 @@ export const getMongoClient = (): MongoClient => {
   }
 
   cachedClient = new MongoClient(uri);
+  // Ensure we establish a connection once and reuse it
+  try {
+    // Fire-and-forget connect to avoid blocking call sites that expect sync access
+    // The driver will queue operations until the connection is ready.
+    void cachedClient.connect();
+  } catch (err) {
+    console.error('MongoDB connect error', err);
+  }
   return cachedClient;
 };
 

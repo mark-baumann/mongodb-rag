@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Mic, Loader2, RefreshCw } from "lucide-react";
 import { ClipLoader } from "react-spinners";
 
@@ -24,6 +24,23 @@ export default function CreatePodcastButton({ documentId }: Props) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [existingUrl, setExistingUrl] = useState<string | null>(null);
   const [loadingExisting, setLoadingExisting] = useState(false);
+
+  // Prefetch existing saved podcast on mount so play is available immediately
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/podcast?documentId=${encodeURIComponent(documentId)}`);
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          if (data?.url) setExistingUrl(data.url);
+        }
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [documentId]);
 
   const openDialog = async () => {
     setIsDialogOpen(true);
