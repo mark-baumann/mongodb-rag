@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { Trash2 } from 'lucide-react';
 
 export default function DeleteAllButton() {
   const router = useRouter();
@@ -29,9 +30,11 @@ export default function DeleteAllButton() {
   return (
     <button
       onClick={handleDelete}
-      className='bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded'
+      title='Alle löschen'
+      aria-label='Alle löschen'
+      className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-red-600 shadow ring-1 ring-red-200 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400'
     >
-      All Löschen
+      <Trash2 className='h-4 w-4' />
     </button>
   );
 }

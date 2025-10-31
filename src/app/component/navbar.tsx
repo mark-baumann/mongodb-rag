@@ -88,10 +88,11 @@ const NavBar: React.FC = () => {
           <div className="hidden md:flex items-center gap-4">
             <Link
               href="/settings"
-              className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
+              title="Einstellungen"
+              aria-label="Einstellungen"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
             >
               <Settings2 className="h-4 w-4" />
-              Einstellungen
             </Link>
           </div>
 
@@ -107,10 +108,11 @@ const NavBar: React.FC = () => {
             <div className="flex flex-col gap-4">
               <Link
                 href="/settings"
-                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
+                title="Einstellungen"
+                aria-label="Einstellungen"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/60"
               >
                 <Settings2 className="h-4 w-4" />
-                Einstellungen
               </Link>
             </div>
           </div>

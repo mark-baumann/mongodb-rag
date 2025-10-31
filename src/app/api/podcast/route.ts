@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getCollection } from '@/utils/openai';
 import OpenAI from 'openai';
+import { list, put } from '@vercel/blob';
 
 const AllowedVoices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'] as const;
 type TTSVoice = typeof AllowedVoices[number];
@@ -116,6 +117,7 @@ export async function POST(req: NextRequest) {
 
     // 3. Convert the script to audio (streaming back to the client)
     const estimatedSeconds = Math.round((script.split(/\s+/).length / 140) * 60);
+    const savedChunks: Buffer[] = [];
     const readableStream = new ReadableStream({
       async start(controller) {
         const size = typeof ttsChunkSize === 'number' && ttsChunkSize > 500 ? Math.min(ttsChunkSize, 8000) : 4000;
@@ -129,10 +131,31 @@ export async function POST(req: NextRequest) {
 
           const buffer = Buffer.from(await speech.arrayBuffer());
           controller.enqueue(buffer);
+          savedChunks.push(buffer);
         }
         controller.close();
       },
     });
+
+    // After the stream is consumed by the client, also persist to Vercel Blob
+    // We tee by having already collected the chunks in-memory above.
+    (async () => {
+      try {
+        const finalBuffer = Buffer.concat(savedChunks);
+        if (finalBuffer.length > 0) {
+          const key = `podcasts/${documentId}.mp3`;
+          await put(key, finalBuffer, {
+            access: 'public',
+            contentType: 'audio/mpeg',
+          });
+          console.log('Saved podcast to blob storage:', key, finalBuffer.length);
+        } else {
+          console.warn('No audio collected to save. Skipping blob upload.');
+        }
+      } catch (saveErr) {
+        console.error('Failed to persist podcast to blob storage', saveErr);
+      }
+    })();
 
     return new NextResponse(readableStream, {
       headers: {
@@ -147,5 +170,28 @@ export async function POST(req: NextRequest) {
     const message =
       error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json({ message }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const authed = cookies().get('auth')?.value === '1';
+  if (!authed) {
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  }
+  const { searchParams } = new URL(req.url);
+  const documentId = searchParams.get('documentId');
+  if (!documentId) {
+    return NextResponse.json({ message: 'Missing documentId' }, { status: 400 });
+  }
+  try {
+    const { blobs } = await list({ prefix: `podcasts/${documentId}.mp3` });
+    const existing = blobs.find((b) => b.pathname.endsWith(`${documentId}.mp3`));
+    if (!existing) {
+      return NextResponse.json({ message: 'Not found' }, { status: 404 });
+    }
+    return NextResponse.json({ url: existing.url, pathname: existing.pathname });
+  } catch (e) {
+    console.error('Failed to list existing podcast blob', e);
+    return NextResponse.json({ message: 'Lookup failed' }, { status: 500 });
   }
 }

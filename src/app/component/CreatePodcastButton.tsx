@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Mic, Loader2 } from "lucide-react";
+import { Mic, Loader2, RefreshCw } from "lucide-react";
 import { ClipLoader } from "react-spinners";
 
 type Props = {
@@ -22,8 +22,26 @@ export default function CreatePodcastButton({ documentId }: Props) {
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [ttsChunkSize, setTtsChunkSize] = useState<number>(4000);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [existingUrl, setExistingUrl] = useState<string | null>(null);
+  const [loadingExisting, setLoadingExisting] = useState(false);
 
-  const openDialog = () => setIsDialogOpen(true);
+  const openDialog = async () => {
+    setIsDialogOpen(true);
+    setLoadingExisting(true);
+    try {
+      const res = await fetch(`/api/podcast?documentId=${encodeURIComponent(documentId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.url) setExistingUrl(data.url);
+      } else {
+        setExistingUrl(null);
+      }
+    } catch {
+      setExistingUrl(null);
+    } finally {
+      setLoadingExisting(false);
+    }
+  };
   const closeDialog = () => setIsDialogOpen(false);
 
   const startCreation = async () => {
@@ -71,29 +89,12 @@ export default function CreatePodcastButton({ documentId }: Props) {
         type="button"
         onClick={openDialog}
         disabled={isCreating}
-        className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60"
-        title="Podcast erstellen"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-emerald-700 shadow ring-1 ring-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+        title="Podcast"
+        aria-label="Podcast erstellen"
       >
-        <Mic className="h-4 w-4" />
-        {isCreating ? (
-          <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Erstelle…</span>
-        ) : (
-          "Podcast"
-        )}
+        {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
       </button>
-
-      {audioUrl && (
-        <div className="flex items-center gap-2">
-          <audio controls preload="metadata" src={audioUrl}></audio>
-          <a
-            href={audioUrl}
-            download={`podcast-${documentId}.mp3`}
-            className="text-sm text-emerald-700 hover:underline"
-          >
-            Download
-          </a>
-        </div>
-      )}
 
       {isDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -101,6 +102,16 @@ export default function CreatePodcastButton({ documentId }: Props) {
             <h2 className="mb-4 text-xl font-bold">Podcast erstellen</h2>
 
             <div className="space-y-4">
+              {loadingExisting ? (
+                <div className="text-sm text-gray-600">Prüfe vorhandene Version…</div>
+              ) : existingUrl ? (
+                <div className="rounded-md border border-emerald-100 bg-emerald-50 p-3">
+                  <p className="mb-2 text-sm font-semibold text-emerald-800">Gespeicherter Podcast</p>
+                  <audio controls preload="metadata" src={existingUrl} className="w-full" />
+                  <p className="mt-2 text-xs text-emerald-900">Diese Version ist gespeichert. Du kannst sie jederzeit wieder anhören.</p>
+                </div>
+              ) : null}
+
               <div>
                 <label className="mb-1 block text-sm font-medium">Thema/Beschreibung (optional)</label>
                 <input
@@ -260,14 +271,11 @@ export default function CreatePodcastButton({ documentId }: Props) {
               </button>
               <button
                 onClick={startCreation}
-                className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 disabled:bg-emerald-300"
+                className="inline-flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 disabled:bg-emerald-300"
                 disabled={isCreating}
               >
-                {isCreating ? (
-                  <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Erstelle…</span>
-                ) : (
-                  "Erstellen"
-                )}
+                {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                {isCreating ? 'Erstelle…' : existingUrl ? 'Neu generieren' : 'Erstellen'}
               </button>
             </div>
           </div>

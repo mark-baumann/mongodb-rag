@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Eye, FolderOpen, Trash2 } from 'lucide-react';
 import CreatePodcastButton from './CreatePodcastButton';
 
 interface DocumentItemProps {
@@ -99,37 +100,33 @@ export default function DocumentItem({ document, folders }: DocumentItemProps) {
           <span className='text-xs text-gray-500 mt-1'>Ordner: {document.folder}</span>
         )}
       </div>
-      <div className='flex items-center gap-3 sm:justify-end'>
+      <div className='flex items-center gap-2 sm:justify-end'>
         <CreatePodcastButton documentId={document.documentId} />
         <a
           href={`/doc/${document.documentId}/chat`}
           target='_blank'
           rel='noopener noreferrer'
-          className='inline-flex items-center rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
+          title='Ansehen'
+          aria-label='Ansehen'
+          className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-indigo-700 shadow ring-1 ring-indigo-200 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400'
         >
-          Ansehen
+          <Eye className='h-4 w-4' />
         </a>
-        {!hasFolder && (
-          <button
-            onClick={handleOpenMoveModal}
-            className='inline-flex items-center rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
-          >
-            Zum Ordner hinzufügen
-          </button>
-        )}
-        {hasFolder && (
-          <button
-            onClick={handleOpenMoveModal}
-            className='inline-flex items-center rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2'
-          >
-            Ordner wechseln
-          </button>
-        )}
+        <button
+          onClick={handleOpenMoveModal}
+          title={hasFolder ? 'Ordner wechseln' : 'Ordner auswählen'}
+          aria-label={hasFolder ? 'Ordner wechseln' : 'Ordner auswählen'}
+          className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-700 shadow ring-1 ring-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400'
+        >
+          <FolderOpen className='h-4 w-4' />
+        </button>
         <button
           onClick={handleDelete}
-          className='inline-flex items-center rounded-md bg-red-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2'
+          title='Löschen'
+          aria-label='Löschen'
+          className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-red-600 shadow ring-1 ring-red-200 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400'
         >
-          Löschen
+          <Trash2 className='h-4 w-4' />
         </button>
       </div>
       {isMoveModalOpen && (

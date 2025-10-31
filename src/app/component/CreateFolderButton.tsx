@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { FolderPlus, Loader2 } from 'lucide-react';
 
 export default function CreateFolderButton() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,9 +46,11 @@ export default function CreateFolderButton() {
     <>
       <button
         onClick={() => setIsModalOpen(true)}
-        className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+        title='Ordner erstellen'
+        aria-label='Ordner erstellen'
+        className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-blue-700 shadow ring-1 ring-blue-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400'
       >
-        Ordner erstellen
+        <FolderPlus className='h-4 w-4' />
       </button>
 
       {isModalOpen && (
@@ -71,10 +74,11 @@ export default function CreateFolderButton() {
               </button>
               <button
                 onClick={handleCreateFolder}
-                className="px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 disabled:bg-blue-300"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-300"
                 disabled={isCreating}
               >
-                {isCreating ? 'Erstelle...' : 'Erstellen'}
+                {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {isCreating ? 'Erstelle…' : 'Erstellen'}
               </button>
             </div>
           </div>

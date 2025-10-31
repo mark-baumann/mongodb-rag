@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { Upload } from 'lucide-react';
 
 export default function UploadDocuments() {
   const router = useRouter();
@@ -118,9 +119,11 @@ export default function UploadDocuments() {
         type='button'
         onClick={handleButtonClick}
         disabled={isUploading}
-        className='rounded bg-black px-4 py-2 font-bold text-white transition-colors duration-150 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-600'
+        title='Dokument hochladen'
+        aria-label='Dokument hochladen'
+        className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-900 shadow ring-1 ring-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:cursor-not-allowed disabled:opacity-60'
       >
-        {isUploading ? 'Uploading...' : 'Dokument hochladen'}
+        <Upload className='h-4 w-4' />
       </button>
     </>
   );

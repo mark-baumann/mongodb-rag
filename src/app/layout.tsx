@@ -11,6 +11,15 @@ export const metadata: Metadata = {
   title: "mongoDB rag",
   description: "RAG using MongoDB Atlas & OpenAI",
   manifest: "/manifest.json",
+  icons: {
+    icon: [
+      { url: "/bot.png", sizes: "192x192", type: "image/png" },
+      { url: "/bot.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/bot.png" },
+    ],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
