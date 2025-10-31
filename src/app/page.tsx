@@ -108,7 +108,9 @@ const Home = async () => {
     try {
       let cursor: string | undefined = undefined;
       do {
-        const { blobs, cursor: nextCursor } = await list({ prefix: 'podcasts/', cursor });
+        const resp = await list({ prefix: 'podcasts/', cursor });
+        const blobs = resp.blobs;
+        const nextCursor: string | undefined = resp.cursor as string | undefined;
         for (const blob of blobs) {
           const m = blob.pathname.match(/^podcasts\/(.+)\.mp3$/);
           if (m) {
