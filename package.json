@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "import-courses": "ts-node --project=scripts/tsconfig.json scripts/main.tsx"
+    "build:scripts": "tsc --project scripts/tsconfig.json",
+    "preimport-courses": "npm run build:scripts",
+    "import-courses": "node scripts/dist/main.js"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -18,6 +20,7 @@
     "axios": "^1.6.7",
     "dotenv": "^16.4.5",
     "filepond": "^4.30.6",
+    "form-data": "^4.0.4",
     "langchain": "^0.1.20",
     "lucide-react": "^0.546.0",
     "mongodb": "5.2.0",

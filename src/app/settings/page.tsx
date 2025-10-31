@@ -13,6 +13,20 @@ export default function SettingsPage() {
   const [isAuthed, setIsAuthed] = useState(false);
   const [authMessage, setAuthMessage] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
+  const [importMessage, setImportMessage] = useState('');
+
+  const handleImport = async () => {
+    setImportMessage('Importing...');
+    const res = await fetch('/api/import-fom', {
+      method: 'POST',
+    });
+    const data = await res.json();
+    if (data.success) {
+      setImportMessage('Import successful!');
+    } else {
+      setImportMessage(`Import failed: ${data.message}`);
+    }
+  };
 
   // Visual-only RAG settings
   const [chunkSize, setChunkSize] = useState(1000);
@@ -95,14 +109,22 @@ export default function SettingsPage() {
             </div>
             <p className="mb-4 text-sm text-gray-600">Wird nur lokal im Browser gespeichert.</p>
             <div className="space-y-3">
-              <input
-                type="password"
-                placeholder="sk-..."
-                value={draftKey}
-                onChange={(e) => setDraftKey(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-              />
-              <p className="text-xs text-gray-500">{apiKeyHint}</p>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  placeholder="sk-..."
+                  value={draftKey}
+                  onChange={(e) => setDraftKey(e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                />
+                <button
+                  onClick={handleSaveAll}
+                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                >
+                  Speichern
+                </button>
+              </div>
+              <p className="text-xs text-gray-500">{saveMessage || apiKeyHint}</p>
             </div>
           </section>
 
@@ -138,7 +160,7 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* RAG Settings (visual only) */}
+          {/*
           <section className="md:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
               <SlidersHorizontal className="h-5 w-5 text-emerald-600" />
@@ -199,23 +221,21 @@ export default function SettingsPage() {
                 <input value={indexName} onChange={(e) => setIndexName(e.target.value)} className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
               </div>
             </div>
-            {/* No inline save here; use global save at bottom */}
           </section>
+          */}
         </div>
-        {/* Global Save Bar */}
-        <div className="sticky bottom-4 z-10 mt-6 flex items-center justify-end">
-          <div className="flex w-full items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-sm md:w-auto md:gap-6">
-            <span className="text-xs text-emerald-700">
-              {saveMessage || 'Änderungen anwenden'}
-            </span>
-            <button
-              onClick={handleSaveAll}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-            >
-              Speichern
-            </button>
+
+        <section className="md:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm mt-6">
+          <div className="mb-4 flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-gray-900">Scripts</h2>
           </div>
-        </div>
+          <div className="flex items-center justify-between">
+            <button onClick={handleImport} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Import from FOM</button>
+            {importMessage && <p className="text-xs text-gray-600">{importMessage}</p>}
+          </div>
+        </section>
+
+
       </main>
     </div>
   );

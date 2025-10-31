@@ -23,16 +23,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
     const formData = await req.formData();
-    const formValues = Array.from(formData.values());
-
-    if (formValues.length === 0) {
-      console.log('No files found.');
-      return NextResponse.json({ message: 'No files found' }, { status: 400 });
-    }
-
-    const uploadedFile = formValues.find(
-      (value): value is File => value instanceof File
-    );
+    const uploadedFile = formData.get('file') as File;
+    const folderName = formData.get('folderName') as string | null;
 
     if (!(uploadedFile instanceof File)) {
       console.log('Uploaded file is not in the expected format.');
@@ -62,6 +54,7 @@ export async function POST(req: NextRequest) {
       name: fileName,
       url: blob.url,
       createdAt: new Date(),
+      ...(folderName && { folderName }),
     });
     console.log('Document metadata saved to metadata collection.');
 
@@ -81,6 +74,7 @@ export async function POST(req: NextRequest) {
       source: blob.url,
       fileName,
       documentId,
+      ...(folderName && { folderName }),
     }));
 
     console.log('Creating embeddings and saving to MongoDB...');

@@ -1,14 +1,17 @@
 import fs from "fs";
 import path from "path";
 import { Page } from "playwright";
+import axios from "axios";
+import FormData from "form-data";
 
 /**
- * Lädt alle PDFs eines Kurses herunter.
+ * Lädt alle PDFs eines Kurses herunter und lädt sie in die RAG-Anwendung hoch.
  * @param page Playwright Page – sollte bereits eingeloggt sein.
  * @param courseUrl Moodle-Link des Kurses (z. B. https://lms.fom.de/course/view.php?id=34874)
  * @param outputDir Zielordner (z. B. "./downloads")
+ * @param folderName Name des Ordners in der RAG-Anwendung
  */
-export async function downloadPdfs(page: Page, courseUrl: string, outputDir: string) {
+export async function downloadPdfs(page: Page, courseUrl: string, outputDir: string, folderName: string) {
   console.log(`📘 Scanne Kurs: ${courseUrl}`);
 
   await page.goto(courseUrl, { waitUntil: "domcontentloaded" });
@@ -58,6 +61,27 @@ export async function downloadPdfs(page: Page, courseUrl: string, outputDir: str
 
     fs.writeFileSync(filePath, await pdfResponse.body());
     console.log(`✅ Gespeichert: ${filePath}`);
+
+    // Upload to RAG
+    console.log(`⬆️  Uploading to RAG: ${filePath}`);
+    const form = new FormData();
+    form.append('file', fs.createReadStream(filePath), filename);
+    form.append('folderName', folderName);
+
+    try {
+      await axios.post('http://localhost:3000/api/upload', form, {
+        headers: {
+          ...form.getHeaders(),
+        },
+      });
+      console.log(`✅ Uploaded to RAG: ${filename}`);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error(`❌ Error uploading to RAG: ${filename}`, error.response?.data);
+      } else {
+        console.error(`❌ Error uploading to RAG: ${filename}`, error);
+      }
+    }
   }
 
   console.log("🎉 Alle PDFs für diesen Kurs fertig.");

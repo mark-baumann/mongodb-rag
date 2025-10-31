@@ -38,3 +38,6 @@ next-env.d.ts
 
 /scripts/downloads/*
 scripts/main.js
+
+
+/scripts/uploads/*
