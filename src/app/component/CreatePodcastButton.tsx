@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mic, Loader2, RefreshCw } from "lucide-react";
+import { Mic, Loader2, RefreshCw, Play, Square } from "lucide-react";
 import { ClipLoader } from "react-spinners";
 
 type Props = {
@@ -24,6 +24,21 @@ export default function CreatePodcastButton({ documentId }: Props) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [existingUrl, setExistingUrl] = useState<string | null>(null);
   const [loadingExisting, setLoadingExisting] = useState(false);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const [seekMinutes, setSeekMinutes] = useState<string>("");
+  const [duration, setDuration] = useState<number | null>(null);
+  const [current, setCurrent] = useState<number>(0);
+  const audioRef = useState<HTMLAudioElement | null>(null)[0];
+  const setAudioRef = (el: HTMLAudioElement | null) => {
+    // attach listeners for time updates and metadata once
+    if (!el) return;
+    el.onloadedmetadata = () => {
+      setDuration(Number.isFinite(el.duration) ? el.duration : null);
+    };
+    el.ontimeupdate = () => {
+      setCurrent(el.currentTime || 0);
+    };
+  };
 
   // Prefetch existing saved podcast on mount so play is available immediately
   useEffect(() => {
@@ -60,6 +75,36 @@ export default function CreatePodcastButton({ documentId }: Props) {
     }
   };
   const closeDialog = () => setIsDialogOpen(false);
+
+  const openPlayer = async () => {
+    if (!existingUrl) {
+      // Attempt fetch once more
+      try {
+        const res = await fetch(`/api/podcast?documentId=${encodeURIComponent(documentId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.url) setExistingUrl(data.url);
+        }
+      } catch {}
+    }
+    setIsPlayerOpen(true);
+  };
+  const closePlayer = () => setIsPlayerOpen(false);
+  const stopPlayback = () => {
+    const el = document.getElementById(`audio-${documentId}`) as HTMLAudioElement | null;
+    if (el) {
+      try { el.pause(); } catch {}
+      try { el.currentTime = 0; } catch {}
+    }
+  };
+  const jumpToMinute = () => {
+    const el = document.getElementById(`audio-${documentId}`) as HTMLAudioElement | null;
+    const m = parseFloat((seekMinutes || '0').replace(',', '.'));
+    if (el && Number.isFinite(m)) {
+      const sec = Math.max(0, m * 60);
+      try { el.currentTime = sec; } catch {}
+    }
+  };
 
   const startCreation = async () => {
     setIsCreating(true);
@@ -121,16 +166,29 @@ export default function CreatePodcastButton({ documentId }: Props) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={openDialog}
-        disabled={isCreating}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-emerald-700 shadow ring-1 ring-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
-        title="Podcast"
-        aria-label="Podcast erstellen"
-      >
-        {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={openDialog}
+          disabled={isCreating}
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-emerald-700 shadow ring-1 ring-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+          title="Podcast"
+          aria-label="Podcast erstellen"
+        >
+          {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
+        </button>
+        {existingUrl && (
+          <button
+            type="button"
+            onClick={openPlayer}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-emerald-700 shadow ring-1 ring-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            title="Podcast abspielen"
+            aria-label="Podcast abspielen"
+          >
+            <Play className="h-4 w-4" />
+          </button>
+        )}
+      </div>
 
       {isDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -324,9 +382,60 @@ export default function CreatePodcastButton({ documentId }: Props) {
         </div>
       )}
 
-      {(existingUrl || audioUrl) && (
-        <div className="ml-2 inline-flex max-w-[240px] items-center gap-2 align-middle">
-          <audio controls preload="metadata" src={existingUrl || audioUrl || undefined} className="max-w-[240px]" />
+      {isPlayerOpen && existingUrl && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-lg rounded-lg bg-white p-6 text-gray-800 shadow-xl">
+            <h3 className="mb-4 text-lg font-semibold">Podcast</h3>
+            <audio
+              id={`audio-${documentId}`}
+              ref={setAudioRef}
+              controls
+              preload="metadata"
+              src={existingUrl}
+              className="w-full"
+            />
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={stopPlayback}
+                className="inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <Square className="h-4 w-4" /> Stoppen
+              </button>
+              <div className="inline-flex items-center gap-2">
+                <label className="text-sm text-gray-700">Minute</label>
+                <input
+                  type="number"
+                  step={0.01}
+                  min={0}
+                  value={seekMinutes}
+                  onChange={(e) => setSeekMinutes(e.target.value)}
+                  className="w-24 rounded-md border border-gray-300 px-2 py-1 text-sm"
+                  placeholder="z. B. 1.5"
+                />
+                <button
+                  type="button"
+                  onClick={jumpToMinute}
+                  className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-700"
+                >
+                  Springen
+                </button>
+              </div>
+              {duration !== null && (
+                <div className="ml-auto text-xs text-gray-600">
+                  {Math.floor(current / 60)}:{String(Math.floor(current % 60)).padStart(2, '0')} / {Math.floor(duration / 60)}:{String(Math.floor(duration % 60)).padStart(2, '0')}
+                </div>
+              )}
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={closePlayer}
+                className="rounded-md px-4 py-2 text-gray-700 hover:bg-gray-100"
+              >
+                Schließen
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </>
