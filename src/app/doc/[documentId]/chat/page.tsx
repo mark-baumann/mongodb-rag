@@ -1,7 +1,6 @@
 import { list } from '@vercel/blob';
 import { notFound } from 'next/navigation';
 import DocumentChatShell from './DocumentChatShell';
-import { list } from '@vercel/blob';
 
 const DOCUMENT_PREFIX = 'documents/';
 
