@@ -17,6 +17,7 @@ const toVoice = (v: unknown): TTSVoice => {
 const openai = new OpenAI();
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 async function* textChunker(text: string, maxChunkSize: number): AsyncGenerator<string> {
   let currentChunk = '';
@@ -182,24 +183,20 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const authed = cookies().get('auth')?.value === '1';
-  if (!authed) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
   const { searchParams } = new URL(req.url);
   const documentId = searchParams.get('documentId');
   if (!documentId) {
-    return NextResponse.json({ message: 'Missing documentId' }, { status: 400 });
+    return NextResponse.json({ message: 'Missing documentId' }, { status: 400, headers: { 'cache-control': 'no-store' } });
   }
   try {
     const { blobs } = await list({ prefix: `podcasts/${documentId}.mp3` });
     const existing = blobs.find((b) => b.pathname.endsWith(`${documentId}.mp3`));
     if (!existing) {
-      return NextResponse.json({ message: 'Not found' }, { status: 404 });
+      return NextResponse.json({ message: 'Not found' }, { status: 404, headers: { 'cache-control': 'no-store' } });
     }
-    return NextResponse.json({ url: existing.url, pathname: existing.pathname });
+    return NextResponse.json({ url: existing.url, pathname: existing.pathname }, { headers: { 'cache-control': 'no-store' } });
   } catch (e) {
     console.error('Failed to list existing podcast blob', e);
-    return NextResponse.json({ message: 'Lookup failed' }, { status: 500 });
+    return NextResponse.json({ message: 'Lookup failed' }, { status: 500, headers: { 'cache-control': 'no-store' } });
   }
 }
