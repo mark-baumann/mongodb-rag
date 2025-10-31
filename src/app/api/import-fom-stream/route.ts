@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server';
 import { spawn } from 'child_process';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   const stream = new ReadableStream({
     start(controller) {
