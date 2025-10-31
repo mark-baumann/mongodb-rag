@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mic, Loader2, RefreshCw, Play, Square } from "lucide-react";
+import { Mic, Loader2, RefreshCw, Play } from "lucide-react";
 import { ClipLoader } from "react-spinners";
 
 type Props = {
@@ -26,20 +26,6 @@ export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
   const [existingUrl, setExistingUrl] = useState<string | null>(initialUrl ?? null);
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
-  const [seekMinutes, setSeekMinutes] = useState<string>("");
-  const [duration, setDuration] = useState<number | null>(null);
-  const [current, setCurrent] = useState<number>(0);
-  const audioRef = useState<HTMLAudioElement | null>(null)[0];
-  const setAudioRef = (el: HTMLAudioElement | null) => {
-    // attach listeners for time updates and metadata once
-    if (!el) return;
-    el.onloadedmetadata = () => {
-      setDuration(Number.isFinite(el.duration) ? el.duration : null);
-    };
-    el.ontimeupdate = () => {
-      setCurrent(el.currentTime || 0);
-    };
-  };
 
   // Prefetch existing saved podcast on mount so play is available immediately
   useEffect(() => {
@@ -91,21 +77,6 @@ export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
     setIsPlayerOpen(true);
   };
   const closePlayer = () => setIsPlayerOpen(false);
-  const stopPlayback = () => {
-    const el = document.getElementById(`audio-${documentId}`) as HTMLAudioElement | null;
-    if (el) {
-      try { el.pause(); } catch {}
-      try { el.currentTime = 0; } catch {}
-    }
-  };
-  const jumpToMinute = () => {
-    const el = document.getElementById(`audio-${documentId}`) as HTMLAudioElement | null;
-    const m = parseFloat((seekMinutes || '0').replace(',', '.'));
-    if (el && Number.isFinite(m)) {
-      const sec = Math.max(0, m * 60);
-      try { el.currentTime = sec; } catch {}
-    }
-  };
 
   const startCreation = async () => {
     setIsCreating(true);
@@ -388,46 +359,11 @@ export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
           <div className="w-full max-w-lg rounded-lg bg-white p-6 text-gray-800 shadow-xl">
             <h3 className="mb-4 text-lg font-semibold">Podcast</h3>
             <audio
-              id={`audio-${documentId}`}
-              ref={setAudioRef}
               controls
               preload="metadata"
               src={existingUrl}
               className="w-full"
             />
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={stopPlayback}
-                className="inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
-              >
-                <Square className="h-4 w-4" /> Stoppen
-              </button>
-              <div className="inline-flex items-center gap-2">
-                <label className="text-sm text-gray-700">Minute</label>
-                <input
-                  type="number"
-                  step={0.01}
-                  min={0}
-                  value={seekMinutes}
-                  onChange={(e) => setSeekMinutes(e.target.value)}
-                  className="w-24 rounded-md border border-gray-300 px-2 py-1 text-sm"
-                  placeholder="z. B. 1.5"
-                />
-                <button
-                  type="button"
-                  onClick={jumpToMinute}
-                  className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm text-white hover:bg-emerald-700"
-                >
-                  Springen
-                </button>
-              </div>
-              {duration !== null && (
-                <div className="ml-auto text-xs text-gray-600">
-                  {Math.floor(current / 60)}:{String(Math.floor(current % 60)).padStart(2, '0')} / {Math.floor(duration / 60)}:{String(Math.floor(duration % 60)).padStart(2, '0')}
-                </div>
-              )}
-            </div>
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={closePlayer}
