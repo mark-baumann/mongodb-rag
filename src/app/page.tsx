@@ -72,7 +72,9 @@ const Home = async () => {
   }
 
   const documentIds = documents.map((doc) => doc.documentId);
+  const docIdSet = new Set(documentIds);
   let folderAssignments: Record<string, string | null> = {};
+  let podcastMap: Record<string, string> = {};
 
   if (documentIds.length > 0) {
     try {
@@ -101,6 +103,26 @@ const Home = async () => {
       );
     } catch (error) {
       console.error('Failed to load folder assignments from MongoDB', error);
+    }
+    // Also collect existing podcasts for these documents (SSR) so play icon is shown immediately
+    try {
+      let cursor: string | undefined = undefined;
+      do {
+        const { blobs, cursor: nextCursor } = await list({ prefix: 'podcasts/', cursor });
+        for (const blob of blobs) {
+          const m = blob.pathname.match(/^podcasts\/(.+)\.mp3$/);
+          if (m) {
+            const id = m[1];
+            if (docIdSet.has(id) && !podcastMap[id]) {
+              podcastMap[id] = blob.url;
+            }
+          }
+        }
+        cursor = nextCursor;
+        if (Object.keys(podcastMap).length >= docIdSet.size) break;
+      } while (cursor);
+    } catch (err) {
+      console.error('Failed to list podcasts', err);
     }
   }
 
@@ -156,14 +178,14 @@ const Home = async () => {
                 >
                   <ul className="space-y-2 pt-2">
                     {folderDocuments.map(doc => (
-                      <DocumentItem key={doc.pathname} document={doc} folders={folders} />
+                      <DocumentItem key={doc.pathname} document={doc} folders={folders} podcastUrl={podcastMap[doc.documentId] ?? null} />
                     ))}
                   </ul>
                 </FolderItem>
               );
             })}
             {rootDocuments.map((doc) => (
-              <DocumentItem key={doc.pathname} document={doc} folders={folders} />
+              <DocumentItem key={doc.pathname} document={doc} folders={folders} podcastUrl={podcastMap[doc.documentId] ?? null} />
             ))}
           </ul>
         ) : (

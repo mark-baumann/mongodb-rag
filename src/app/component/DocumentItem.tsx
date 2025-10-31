@@ -13,9 +13,10 @@ interface DocumentItemProps {
     folder?: string | null;
   };
   folders: string[];
+  podcastUrl?: string | null;
 }
 
-export default function DocumentItem({ document, folders }: DocumentItemProps) {
+export default function DocumentItem({ document, folders, podcastUrl }: DocumentItemProps) {
   const router = useRouter();
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
@@ -101,7 +102,7 @@ export default function DocumentItem({ document, folders }: DocumentItemProps) {
         )}
       </div>
       <div className='flex items-center gap-2 sm:justify-end'>
-        <CreatePodcastButton documentId={document.documentId} />
+        <CreatePodcastButton documentId={document.documentId} initialUrl={podcastUrl ?? undefined} />
         <a
           href={`/doc/${document.documentId}/chat`}
           target='_blank'

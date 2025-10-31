@@ -6,9 +6,10 @@ import { ClipLoader } from "react-spinners";
 
 type Props = {
   documentId: string;
+  initialUrl?: string;
 };
 
-export default function CreatePodcastButton({ documentId }: Props) {
+export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [podcastTopic, setPodcastTopic] = useState("");
@@ -22,7 +23,7 @@ export default function CreatePodcastButton({ documentId }: Props) {
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [ttsChunkSize, setTtsChunkSize] = useState<number>(4000);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [existingUrl, setExistingUrl] = useState<string | null>(null);
+  const [existingUrl, setExistingUrl] = useState<string | null>(initialUrl ?? null);
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [seekMinutes, setSeekMinutes] = useState<string>("");

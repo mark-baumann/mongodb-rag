@@ -13,9 +13,10 @@ type DocumentChatShellProps = {
   viewerUrl: string;
   documentId:string;
   documentName: string;
+  initialPodcastUrl?: string | null;
 };
 
-const DocumentChatShell = ({ viewerUrl, documentId, documentName }: DocumentChatShellProps) => {
+const DocumentChatShell = ({ viewerUrl, documentId, documentName, initialPodcastUrl }: DocumentChatShellProps) => {
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   useEffect(() => {
@@ -47,7 +48,7 @@ const DocumentChatShell = ({ viewerUrl, documentId, documentName }: DocumentChat
               <MessageSquare size={24} />
             </button>
           )}
-          <CreatePodcastButton documentId={documentId} />
+          <CreatePodcastButton documentId={documentId} initialUrl={initialPodcastUrl ?? undefined} />
         </div>
 
         {isChatOpen && (
