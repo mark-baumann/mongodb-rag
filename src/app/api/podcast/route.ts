@@ -189,12 +189,25 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: 'Missing documentId' }, { status: 400, headers: { 'cache-control': 'no-store' } });
   }
   try {
-    const { blobs } = await list({ prefix: `podcasts/${documentId}.mp3` });
-    const existing = blobs.find((b) => b.pathname.endsWith(`${documentId}.mp3`));
-    if (!existing) {
+    // Robust search: iterate podcasts/ folder and find matching filename
+    let found: { url: string; pathname: string } | null = null;
+    let cursor: string | undefined = undefined;
+    do {
+      const resp = await list({ prefix: 'podcasts/', cursor });
+      for (const b of resp.blobs) {
+        if (b.pathname === `podcasts/${documentId}.mp3` || b.pathname.endsWith(`/${documentId}.mp3`) || b.pathname.endsWith(`${documentId}.mp3`)) {
+          found = { url: b.url, pathname: b.pathname };
+          break;
+        }
+      }
+      if (found) break;
+      cursor = resp.cursor as string | undefined;
+    } while (cursor);
+
+    if (!found) {
       return NextResponse.json({ message: 'Not found' }, { status: 404, headers: { 'cache-control': 'no-store' } });
     }
-    return NextResponse.json({ url: existing.url, pathname: existing.pathname }, { headers: { 'cache-control': 'no-store' } });
+    return NextResponse.json(found, { headers: { 'cache-control': 'no-store' } });
   } catch (e) {
     console.error('Failed to list existing podcast blob', e);
     return NextResponse.json({ message: 'Lookup failed' }, { status: 500, headers: { 'cache-control': 'no-store' } });

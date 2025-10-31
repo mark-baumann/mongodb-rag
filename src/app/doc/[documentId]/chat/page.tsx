@@ -18,9 +18,17 @@ export default async function ChatDocumentPage({ params }: { params: { documentI
   // Look for existing podcast for SSR play button
   let podcastUrl: string | null = null;
   try {
-    const { blobs } = await list({ prefix: `podcasts/${documentId}.mp3` });
-    const found = blobs.find((b) => b.pathname.endsWith(`${documentId}.mp3`));
-    podcastUrl = found?.url ?? null;
+    let cursor: string | undefined = undefined;
+    do {
+      const resp = await list({ prefix: `podcasts/`, cursor });
+      const blobs = resp.blobs;
+      const found = blobs.find((b) => b.pathname === `podcasts/${documentId}.mp3` || b.pathname.endsWith(`/${documentId}.mp3`));
+      if (found) {
+        podcastUrl = found.url;
+        break;
+      }
+      cursor = resp.cursor as string | undefined;
+    } while (cursor);
   } catch {}
 
   return (
