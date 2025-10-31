@@ -14,18 +14,26 @@ export default function SettingsPage() {
   const [authMessage, setAuthMessage] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
   const [importMessage, setImportMessage] = useState('');
+  const [importLogs, setImportLogs] = useState<string[]>([]);
 
   const handleImport = async () => {
+    setImportLogs([]);
     setImportMessage('Importing...');
-    const res = await fetch('/api/import-fom', {
-      method: 'POST',
-    });
-    const data = await res.json();
-    if (data.success) {
-      setImportMessage('Import successful!');
-    } else {
-      setImportMessage(`Import failed: ${data.message}`);
-    }
+    const eventSource = new EventSource('/api/import-fom-stream');
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.message) {
+        setImportLogs((prev) => [...prev, data.message]);
+      } else if (data.error) {
+        setImportLogs((prev) => [...prev, `ERROR: ${data.error}`]);
+      }
+    };
+
+    eventSource.onerror = () => {
+      setImportMessage('Import failed.');
+      eventSource.close();
+    };
   };
 
   // Visual-only RAG settings
@@ -233,6 +241,13 @@ export default function SettingsPage() {
             <button onClick={handleImport} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Import from FOM</button>
             {importMessage && <p className="text-xs text-gray-600">{importMessage}</p>}
           </div>
+          {importLogs.length > 0 && (
+            <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+              <pre className="text-xs whitespace-pre-wrap">
+                {importLogs.join('')}
+              </pre>
+            </div>
+          )}
         </section>
 
 
