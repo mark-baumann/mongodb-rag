@@ -115,54 +115,53 @@ export async function POST(req: NextRequest) {
       script = text.slice(0, 8000);
     }
 
-    // 3. Convert the script to audio (streaming back to the client)
+    // 3. Convert the script to audio (accumulate -> persist -> respond)
     const estimatedSeconds = Math.round((script.split(/\s+/).length / 140) * 60);
-    const savedChunks: Buffer[] = [];
-    const readableStream = new ReadableStream({
-      async start(controller) {
-        const size = typeof ttsChunkSize === 'number' && ttsChunkSize > 500 ? Math.min(ttsChunkSize, 8000) : 4000;
-        for await (const chunk of textChunker(script, size)) {
-          console.log(`Processing TTS chunk of length ${chunk.length}`);
-          const speech = await openai.audio.speech.create({
-            model: 'tts-1',
-            voice: toVoice(voice),
-            input: chunk,
-          });
+    const buffers: Buffer[] = [];
+    const size =
+      typeof ttsChunkSize === 'number' && ttsChunkSize > 500
+        ? Math.min(ttsChunkSize, 8000)
+        : 4000;
+    for await (const chunk of textChunker(script, size)) {
+      console.log(`Processing TTS chunk of length ${chunk.length}`);
+      const speech = await openai.audio.speech.create({
+        model: 'tts-1',
+        voice: toVoice(voice),
+        input: chunk,
+      });
+      const buffer = Buffer.from(await speech.arrayBuffer());
+      buffers.push(buffer);
+    }
 
-          const buffer = Buffer.from(await speech.arrayBuffer());
-          controller.enqueue(buffer);
-          savedChunks.push(buffer);
-        }
-        controller.close();
-      },
-    });
+    const finalBuffer = Buffer.concat(buffers);
+    if (finalBuffer.length === 0) {
+      console.error('No audio produced by TTS');
+      return NextResponse.json(
+        { message: 'Konnte keine Audiodaten generieren.' },
+        { status: 500 },
+      );
+    }
 
-    // After the stream is consumed by the client, also persist to Vercel Blob
-    // We tee by having already collected the chunks in-memory above.
-    (async () => {
-      try {
-        const finalBuffer = Buffer.concat(savedChunks);
-        if (finalBuffer.length > 0) {
-          const key = `podcasts/${documentId}.mp3`;
-          await put(key, finalBuffer, {
-            access: 'public',
-            contentType: 'audio/mpeg',
-          });
-          console.log('Saved podcast to blob storage:', key, finalBuffer.length);
-        } else {
-          console.warn('No audio collected to save. Skipping blob upload.');
-        }
-      } catch (saveErr) {
-        console.error('Failed to persist podcast to blob storage', saveErr);
-      }
-    })();
+    const key = `podcasts/${documentId}.mp3`;
+    let blobUrl: string | undefined;
+    try {
+      const result = await put(key, finalBuffer, {
+        access: 'public',
+        contentType: 'audio/mpeg',
+      });
+      blobUrl = result.url;
+      console.log('Saved podcast to blob storage:', key, finalBuffer.length);
+    } catch (saveErr) {
+      console.error('Failed to persist podcast to blob storage', saveErr);
+    }
 
-    return new NextResponse(readableStream, {
+    return new NextResponse(finalBuffer, {
       headers: {
         'Content-Type': 'audio/mpeg',
         'X-Estimated-Duration': String(estimatedSeconds),
         'X-Podcast-Topic': topic ? String(topic) : 'Podcast',
         'X-Voice': toVoice(voice),
+        ...(blobUrl ? { 'X-Podcast-Url': blobUrl, 'X-Podcast-Key': key } : {}),
       },
     });
   } catch (error) {

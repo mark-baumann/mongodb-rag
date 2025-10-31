@@ -47,6 +47,7 @@ export default function CreatePodcastButton({ documentId }: Props) {
   const startCreation = async () => {
     setIsCreating(true);
     setAudioUrl(null);
+    setIsDialogOpen(false);
     try {
       const res = await fetch("/api/podcast", {
         method: "POST",
@@ -73,8 +74,26 @@ export default function CreatePodcastButton({ documentId }: Props) {
       }
 
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setAudioUrl(url);
+      const headerUrl = res.headers.get('X-Podcast-Url');
+      if (headerUrl) {
+        setExistingUrl(headerUrl);
+        setAudioUrl(null);
+      } else {
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        // try to resolve saved URL now
+        try {
+          const chk = await fetch(`/api/podcast?documentId=${encodeURIComponent(documentId)}`);
+          if (chk.ok) {
+            const data = await chk.json();
+            if (data?.url) {
+              setExistingUrl(data.url);
+              try { URL.revokeObjectURL(url); } catch {}
+              setAudioUrl(null);
+            }
+          }
+        } catch {}
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unbekannter Fehler";
       alert(`Erstellen des Podcasts fehlgeschlagen: ${msg}`);
@@ -285,6 +304,12 @@ export default function CreatePodcastButton({ documentId }: Props) {
       {isCreating && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
           <ClipLoader size={56} color="#059669" />
+        </div>
+      )}
+
+      {(existingUrl || audioUrl) && (
+        <div className="ml-2 inline-flex max-w-[240px] items-center gap-2 align-middle">
+          <audio controls preload="metadata" src={existingUrl || audioUrl || undefined} className="max-w-[240px]" />
         </div>
       )}
     </>
