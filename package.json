@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:scripts": "tsc --project scripts/tsconfig.json",
+    "build:scripts": "npx tsc --project scripts/tsconfig.json",
     "preimport-courses": "npm run build:scripts",
     "import-courses": "node scripts/dist/main.js"
   },
