@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useApiKey } from '../component/ApiKeyProvider';
-import { CheckCircle2, Lock, SlidersHorizontal, ArrowLeft, Wand2 } from 'lucide-react';
+import { CheckCircle2, Lock, SlidersHorizontal, ArrowLeft, Wand2, Plus, X, Loader } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 export default function SettingsPage() {
   const { apiKey, setApiKey } = useApiKey();
@@ -13,6 +14,11 @@ export default function SettingsPage() {
   const [isAuthed, setIsAuthed] = useState(false);
   const [authMessage, setAuthMessage] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Blob Keys Management
+  const [blobKeys, setBlobKeys] = useState<Array<{ id: string; key: string }>>([]);
+  const [newBlobKey, setNewBlobKey] = useState('');
 
   // Visual-only RAG settings
   const [chunkSize, setChunkSize] = useState(1000);
@@ -24,13 +30,45 @@ export default function SettingsPage() {
   const [rerank, setRerank] = useState(false);
   const [indexName, setIndexName] = useState('vector_index');
 
+  const loadBlobKeys = async () => {
+    if (!isAuthed) return;
+    try {
+      const res = await fetch('/api/blob-keys');
+      if (res.ok) {
+        const data = await res.json();
+        setBlobKeys(data || []);
+      }
+    } catch (error) {
+      console.error('Error loading blob keys:', error);
+    }
+  };
+
   useEffect(() => {
-    setDraftKey(apiKey);
-    void fetch('/api/auth/status')
-      .then((r) => r.json())
-      .then((d) => setIsAuthed(!!d?.authenticated))
-      .catch(() => setIsAuthed(false));
+    const initializeAuth = async () => {
+      setIsLoading(true);
+      try {
+        setDraftKey(apiKey);
+        const response = await fetch('/api/auth/status');
+        const data = await response.json();
+        setIsAuthed(!!data?.authenticated);
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+        setIsAuthed(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void initializeAuth();
   }, [apiKey]);
+
+  useEffect(() => {
+    if (isAuthed && !isLoading) {
+      void loadBlobKeys();
+    } else {
+      setBlobKeys([]);
+    }
+  }, [isAuthed, isLoading]);
 
   const handleSaveAll = () => {
     // Persist API key; other settings are visual only
@@ -41,20 +79,25 @@ export default function SettingsPage() {
 
   const handleLogin = async () => {
     setAuthMessage('');
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: draftPassword.trim() }),
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setIsAuthed(false);
-      setAuthMessage(data?.message || 'Anmeldung fehlgeschlagen');
-      return;
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: draftPassword.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setIsAuthed(false);
+        setAuthMessage(data?.message || 'Anmeldung fehlgeschlagen');
+        return;
+      }
+      setIsAuthed(true);
+      setDraftPassword('');
+      setAuthMessage('Anmeldung erfolgreich.');
+    } finally {
+      setIsLoading(false);
     }
-    setIsAuthed(true);
-    setDraftPassword('');
-    setAuthMessage('Anmeldung erfolgreich.');
   };
 
   const handleLogout = async () => {
@@ -85,6 +128,16 @@ export default function SettingsPage() {
         </div>
       </header>
 
+      {/* Loading Spinner */}
+      {isLoading && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/20 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4">
+            <Loader className="h-8 w-8 animate-spin text-emerald-600" />
+            <p className="text-sm font-medium text-gray-700">Wird geladen...</p>
+          </div>
+        </div>
+      )}
+
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* OpenAI API Key */}
@@ -114,35 +167,108 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* App Password */}
-          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+
+          {/* BLOB READ WRITE TOKEN */}
+          <section className="md:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
               <Lock className="h-5 w-5 text-emerald-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Zugangs‑Passwort</h2>
+              <h2 className="text-lg font-semibold text-gray-900">BLOB READ WRITE TOKEN</h2>
             </div>
-            <p className="mb-4 text-sm text-gray-600">Aktiviert Upload, Chat und Aktionen.</p>
+            <p className="mb-4 text-sm text-gray-600">Verwalte deine BLOB Read Write Keys.</p>
+
             <div className="space-y-3">
-              <input
-                type="password"
-                placeholder="Passwort"
-                value={draftPassword}
-                onChange={(e) => setDraftPassword(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-              />
-              <div className="flex items-center justify-between">
-                <div className={`inline-flex items-center gap-2 text-xs ${isAuthed ? 'text-emerald-600' : 'text-gray-500'}`}>
-                  <CheckCircle2 className="h-4 w-4" />
-                  Status: {isAuthed ? 'Angemeldet' : 'Nicht angemeldet'}
+              {/* Existing Keys */}
+              {blobKeys.length > 0 && (
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Gespeicherte Keys</label>
+                  <select
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    disabled={!isAuthed}
+                  >
+                    <option value="">Key auswählen</option>
+                    {blobKeys.map((blobKey, idx) => (
+                      <option key={blobKey.id} value={blobKey.key}>
+                        {blobKey.key}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex gap-2">
+                    {blobKeys.map((blobKey) => (
+                      <button
+                        key={blobKey.id}
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const res = await fetch('/api/blob-keys', {
+                              method: 'DELETE',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: blobKey.id }),
+                            });
+                            if (res.ok) {
+                              toast.success('Key gelöscht');
+                              await loadBlobKeys();
+                            } else {
+                              toast.error('Fehler beim Löschen');
+                            }
+                          } catch (error) {
+                            toast.error(String(error));
+                          }
+                        }}
+                        disabled={!isAuthed}
+                        className="shrink-0 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-3 py-2 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Key löschen"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  {!isAuthed ? (
-                    <button onClick={handleLogin} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Anmelden</button>
-                  ) : (
-                    <button onClick={handleLogout} className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-300">Abmelden</button>
-                  )}
+              )}
+
+              {/* Add New Key */}
+              <div className="border-t pt-4 space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Neuen Key hinzufügen</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="BLOB Read Write Token"
+                    value={newBlobKey}
+                    onChange={(e) => setNewBlobKey(e.target.value)}
+                    disabled={!isAuthed}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 disabled:bg-gray-50 disabled:text-gray-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!newBlobKey.trim()) {
+                        toast.error('Key erforderlich');
+                        return;
+                      }
+                      try {
+                        const res = await fetch('/api/blob-keys', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ key: newBlobKey.trim() }),
+                        });
+                        if (res.ok) {
+                          toast.success('Key hinzugefügt');
+                          setNewBlobKey('');
+                          await loadBlobKeys();
+                        } else {
+                          toast.error('Fehler beim Speichern');
+                        }
+                      } catch (error) {
+                        toast.error(String(error));
+                      }
+                    }}
+                    disabled={!isAuthed || !newBlobKey.trim()}
+                    className="shrink-0 rounded-lg bg-emerald-600 text-white border border-emerald-600 hover:bg-emerald-700 p-2 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    title="Key hinzufügen"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-              {authMessage && <p className="text-xs text-gray-600">{authMessage}</p>}
             </div>
           </section>
 
@@ -210,11 +336,57 @@ export default function SettingsPage() {
           </section>
           */}
         </div>
-
-
-
-
       </main>
+
+      {/* Login Modal */}
+      {!isAuthed && !isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-lg max-w-md w-full mx-4">
+            <div className="mb-6 flex items-center gap-3">
+              <Lock className="h-6 w-6 text-emerald-600" />
+              <h2 className="text-2xl font-semibold text-gray-900">Anmeldung erforderlich</h2>
+            </div>
+            <p className="mb-6 text-sm text-gray-600">
+              Melden Sie sich an, um BLOB Read Write Keys zu verwalten.
+            </p>
+            <div className="space-y-4">
+              <input
+                type="password"
+                placeholder="Passwort eingeben"
+                value={draftPassword}
+                onChange={(e) => setDraftPassword(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleLogin();
+                  }
+                }}
+                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                autoFocus
+                disabled={isLoading}
+              />
+              {authMessage && (
+                <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">
+                  {authMessage}
+                </p>
+              )}
+              <button
+                onClick={handleLogin}
+                disabled={isLoading}
+                className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader className="h-4 w-4 animate-spin" />
+                    Wird angemeldet...
+                  </>
+                ) : (
+                  'Anmelden'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
