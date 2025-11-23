@@ -41,8 +41,10 @@ export default function SettingsPage() {
       if (res.ok) {
         const data = await res.json();
         setBlobKeys(data || []);
-        // Auto-select first key if available
-        if (data && data.length > 0) {
+        // Default to ENV variable (-1), auto-select first key only if ENV is not set
+        if (process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN) {
+          setSelectedBlobKeyIndex(-1);
+        } else if (data && data.length > 0) {
           setSelectedBlobKeyIndex(0);
         } else {
           setSelectedBlobKeyIndex(-1);
@@ -93,7 +95,8 @@ export default function SettingsPage() {
     if (selectedBlobKeyIndex >= 0 && blobKeys[selectedBlobKeyIndex]) {
       setCurrentBlobKey(blobKeys[selectedBlobKeyIndex].key);
     } else {
-      setCurrentBlobKey('');
+      // Use environment variable as fallback
+      setCurrentBlobKey(process.env.BLOB_READ_WRITE_TOKEN || '');
     }
   }, [selectedBlobKeyIndex, blobKeys]);
 
@@ -206,7 +209,9 @@ export default function SettingsPage() {
             {/* Current Key Display */}
             {currentBlobKey && (
               <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
-                <p className="text-sm font-medium text-emerald-800">Aktueller BLOB Key:</p>
+                <p className="text-sm font-medium text-emerald-800">
+                  Aktueller BLOB Key: {selectedBlobKeyIndex >= 0 ? `Key ${selectedBlobKeyIndex + 1}` : 'ENV Variable'}
+                </p>
                 <p className="text-xs text-emerald-600 mt-1 font-mono break-all">
                   {currentBlobKey}
                 </p>
@@ -220,7 +225,7 @@ export default function SettingsPage() {
                   <label className="block text-sm font-medium text-gray-700">BLOB Read Write Schlüssel</label>
                   <div className="flex items-center gap-2">
                     <select
-                      value={selectedBlobKeyIndex >= 0 ? String(selectedBlobKeyIndex) : ""}
+                      value={selectedBlobKeyIndex >= 0 ? String(selectedBlobKeyIndex) : "-1"}
                       onChange={(e) => {
                         const idx = parseInt(e.target.value, 10);
                         setSelectedBlobKeyIndex(idx);
@@ -228,7 +233,9 @@ export default function SettingsPage() {
                       }}
                       className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
                     >
-                      <option value="">{blobKeys.length ? "Schlüssel wählen" : "Kein Schlüssel gespeichert"}</option>
+                      <option value="-1">
+                        {process.env.NEXT_PUBLIC_BLOB_READ_WRITE_TOKEN ? 'ENV Variable (Standard)' : 'Kein Schlüssel gespeichert'}
+                      </option>
                       {blobKeys.map((k, i) => {
                         const masked = k.key.length > 8 ? `•••• ${k.key.slice(-4)}` : "••••";
                         return (
