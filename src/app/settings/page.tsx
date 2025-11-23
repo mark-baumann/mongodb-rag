@@ -215,72 +215,70 @@ export default function SettingsPage() {
 
             {isAuthed && (
               <div className="space-y-3">
-                {/* Existing Keys Dropdown */}
-                {blobKeys.length > 0 && (
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">BLOB Read Write Schlüssel</label>
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={selectedBlobKeyIndex >= 0 ? String(selectedBlobKeyIndex) : ""}
-                        onChange={(e) => {
-                          const idx = parseInt(e.target.value, 10);
-                          setSelectedBlobKeyIndex(idx);
-                          setShowSelectedBlobKey(false);
-                        }}
-                        className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                      >
-                        <option value="">{blobKeys.length ? "Schlüssel wählen" : "Kein Schlüssel gespeichert"}</option>
-                        {blobKeys.map((k, i) => {
-                          const masked = k.key.length > 8 ? `•••• ${k.key.slice(-4)}` : "••••";
-                          return (
-                            <option key={i} value={String(i)}>
-                              {`Key ${i + 1} (${masked})`}
-                            </option>
-                          );
-                        })}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => setShowSelectedBlobKey(!showSelectedBlobKey)}
-                        className="shrink-0 rounded-lg bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200 p-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={selectedBlobKeyIndex < 0}
-                        title={showSelectedBlobKey ? "Verbergen" : "Anzeigen"}
-                      >
-                        {showSelectedBlobKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          if (selectedBlobKeyIndex >= 0) {
-                            const keyToDelete = blobKeys[selectedBlobKeyIndex];
-                            try {
-                              const res = await fetch('/api/blob-keys', {
-                                method: 'DELETE',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ id: keyToDelete.id }),
-                              });
-                              if (res.ok) {
-                                toast.success('Key gelöscht');
-                                setSelectedBlobKeyIndex(-1);
-                                setShowSelectedBlobKey(false);
-                                await loadBlobKeys();
-                              } else {
-                                toast.error('Fehler beim Löschen');
-                              }
-                            } catch (error) {
-                              toast.error(String(error));
+                {/* Existing Keys Dropdown - Always shown */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">BLOB Read Write Schlüssel</label>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedBlobKeyIndex >= 0 ? String(selectedBlobKeyIndex) : ""}
+                      onChange={(e) => {
+                        const idx = parseInt(e.target.value, 10);
+                        setSelectedBlobKeyIndex(idx);
+                        setShowSelectedBlobKey(false);
+                      }}
+                      className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    >
+                      <option value="">{blobKeys.length ? "Schlüssel wählen" : "Kein Schlüssel gespeichert"}</option>
+                      {blobKeys.map((k, i) => {
+                        const masked = k.key.length > 8 ? `•••• ${k.key.slice(-4)}` : "••••";
+                        return (
+                          <option key={i} value={String(i)}>
+                            {`Key ${i + 1} (${masked})`}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setShowSelectedBlobKey(!showSelectedBlobKey)}
+                      className="shrink-0 rounded-lg bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200 p-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={selectedBlobKeyIndex < 0}
+                      title={showSelectedBlobKey ? "Verbergen" : "Anzeigen"}
+                    >
+                      {showSelectedBlobKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (selectedBlobKeyIndex >= 0) {
+                          const keyToDelete = blobKeys[selectedBlobKeyIndex];
+                          try {
+                            const res = await fetch('/api/blob-keys', {
+                              method: 'DELETE',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ id: keyToDelete.id }),
+                            });
+                            if (res.ok) {
+                              toast.success('Key gelöscht');
+                              setSelectedBlobKeyIndex(-1);
+                              setShowSelectedBlobKey(false);
+                              await loadBlobKeys();
+                            } else {
+                              toast.error('Fehler beim Löschen');
                             }
+                          } catch (error) {
+                            toast.error(String(error));
                           }
-                        }}
-                        disabled={selectedBlobKeyIndex < 0}
-                        className="shrink-0 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-3 py-2 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Key löschen"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
+                        }
+                      }}
+                      disabled={selectedBlobKeyIndex < 0}
+                      className="shrink-0 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-3 py-2 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Key löschen"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
+                </div>
 
                 {/* Show Selected Key */}
                 {showSelectedBlobKey && selectedBlobKeyIndex >= 0 && (
