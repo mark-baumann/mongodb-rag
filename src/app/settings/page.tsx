@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useApiKey } from '../component/ApiKeyProvider';
-import { CheckCircle2, Lock, SlidersHorizontal, ArrowLeft, Wand2, Plus, X, Loader } from 'lucide-react';
+import { CheckCircle2, Lock, SlidersHorizontal, ArrowLeft, Wand2, Plus, X, Loader, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 export default function SettingsPage() {
@@ -14,11 +14,14 @@ export default function SettingsPage() {
   const [isAuthed, setIsAuthed] = useState(false);
   const [authMessage, setAuthMessage] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Blob Keys Management
   const [blobKeys, setBlobKeys] = useState<Array<{ id: string; key: string }>>([]);
   const [newBlobKey, setNewBlobKey] = useState('');
+  const [selectedBlobKeyIndex, setSelectedBlobKeyIndex] = useState(-1);
+  const [showSelectedBlobKey, setShowSelectedBlobKey] = useState(false);
 
   // Visual-only RAG settings
   const [chunkSize, setChunkSize] = useState(1000);
@@ -43,7 +46,15 @@ export default function SettingsPage() {
     }
   };
 
+  // Mount effect - only run on client
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Initialize auth - only after mount
+  useEffect(() => {
+    if (!isMounted) return;
+
     const initializeAuth = async () => {
       setIsLoading(true);
       try {
@@ -60,7 +71,7 @@ export default function SettingsPage() {
     };
 
     void initializeAuth();
-  }, [apiKey]);
+  }, [apiKey, isMounted]);
 
   useEffect(() => {
     if (isAuthed && !isLoading) {
@@ -129,7 +140,7 @@ export default function SettingsPage() {
       </header>
 
       {/* Loading Spinner */}
-      {isLoading && (
+      {isMounted && isLoading && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/20 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4">
             <Loader className="h-8 w-8 animate-spin text-emerald-600" />
@@ -176,100 +187,138 @@ export default function SettingsPage() {
             </div>
             <p className="mb-4 text-sm text-gray-600">Verwalte deine BLOB Read Write Keys.</p>
 
-            <div className="space-y-3">
-              {/* Existing Keys */}
-              {blobKeys.length > 0 && (
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">Gespeicherte Keys</label>
-                  <select
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                    disabled={!isAuthed}
-                  >
-                    <option value="">Key auswählen</option>
-                    {blobKeys.map((blobKey, idx) => (
-                      <option key={blobKey.id} value={blobKey.key}>
-                        {blobKey.key}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="flex gap-2">
-                    {blobKeys.map((blobKey) => (
+            {isAuthed && (
+              <div className="space-y-3">
+                {/* Existing Keys Dropdown */}
+                {blobKeys.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">BLOB Read Write Schlüssel</label>
+                    <div className="flex items-center gap-2">
+                      <select
+                        value={selectedBlobKeyIndex >= 0 ? String(selectedBlobKeyIndex) : ""}
+                        onChange={(e) => {
+                          const idx = parseInt(e.target.value, 10);
+                          setSelectedBlobKeyIndex(idx);
+                          setShowSelectedBlobKey(false);
+                        }}
+                        className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                      >
+                        <option value="">{blobKeys.length ? "Schlüssel wählen" : "Kein Schlüssel gespeichert"}</option>
+                        {blobKeys.map((k, i) => {
+                          const masked = k.key.length > 8 ? `•••• ${k.key.slice(-4)}` : "••••";
+                          return (
+                            <option key={i} value={String(i)}>
+                              {`Key ${i + 1} (${masked})`}
+                            </option>
+                          );
+                        })}
+                      </select>
                       <button
-                        key={blobKey.id}
+                        type="button"
+                        onClick={() => setShowSelectedBlobKey(!showSelectedBlobKey)}
+                        className="shrink-0 rounded-lg bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200 p-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={selectedBlobKeyIndex < 0}
+                        title={showSelectedBlobKey ? "Verbergen" : "Anzeigen"}
+                      >
+                        {showSelectedBlobKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                      <button
                         type="button"
                         onClick={async () => {
-                          try {
-                            const res = await fetch('/api/blob-keys', {
-                              method: 'DELETE',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ id: blobKey.id }),
-                            });
-                            if (res.ok) {
-                              toast.success('Key gelöscht');
-                              await loadBlobKeys();
-                            } else {
-                              toast.error('Fehler beim Löschen');
+                          if (selectedBlobKeyIndex >= 0) {
+                            const keyToDelete = blobKeys[selectedBlobKeyIndex];
+                            try {
+                              const res = await fetch('/api/blob-keys', {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ id: keyToDelete.id }),
+                              });
+                              if (res.ok) {
+                                toast.success('Key gelöscht');
+                                setSelectedBlobKeyIndex(-1);
+                                setShowSelectedBlobKey(false);
+                                await loadBlobKeys();
+                              } else {
+                                toast.error('Fehler beim Löschen');
+                              }
+                            } catch (error) {
+                              toast.error(String(error));
                             }
-                          } catch (error) {
-                            toast.error(String(error));
                           }
                         }}
-                        disabled={!isAuthed}
+                        disabled={selectedBlobKeyIndex < 0}
                         className="shrink-0 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 px-3 py-2 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         title="Key löschen"
                       >
                         <X className="w-4 h-4" />
                       </button>
-                    ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* Add New Key */}
-              <div className="border-t pt-4 space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Neuen Key hinzufügen</label>
-                <div className="flex items-center gap-2">
+                {/* Show Selected Key */}
+                {showSelectedBlobKey && selectedBlobKeyIndex >= 0 && (
                   <input
                     type="text"
-                    placeholder="BLOB Read Write Token"
-                    value={newBlobKey}
-                    onChange={(e) => setNewBlobKey(e.target.value)}
-                    disabled={!isAuthed}
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 disabled:bg-gray-50 disabled:text-gray-500"
+                    value={blobKeys[selectedBlobKeyIndex]?.key || ""}
+                    readOnly
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm bg-gray-50"
                   />
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (!newBlobKey.trim()) {
-                        toast.error('Key erforderlich');
-                        return;
-                      }
-                      try {
-                        const res = await fetch('/api/blob-keys', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ key: newBlobKey.trim() }),
-                        });
-                        if (res.ok) {
-                          toast.success('Key hinzugefügt');
-                          setNewBlobKey('');
-                          await loadBlobKeys();
-                        } else {
-                          toast.error('Fehler beim Speichern');
+                )}
+
+                {/* Add New Key */}
+                <div className="border-t pt-4 space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Neuen Schlüssel hinzufügen</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="BLOB Read Write Token eingeben"
+                      value={newBlobKey}
+                      onChange={(e) => setNewBlobKey(e.target.value)}
+                      className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const v = newBlobKey.trim();
+                        if (!v) {
+                          toast.error('Key erforderlich');
+                          return;
                         }
-                      } catch (error) {
-                        toast.error(String(error));
-                      }
-                    }}
-                    disabled={!isAuthed || !newBlobKey.trim()}
-                    className="shrink-0 rounded-lg bg-emerald-600 text-white border border-emerald-600 hover:bg-emerald-700 p-2 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-                    title="Key hinzufügen"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
+                        try {
+                          const res = await fetch('/api/blob-keys', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ key: v }),
+                          });
+                          if (res.ok) {
+                            toast.success('Schlüssel hinzugefügt');
+                            setNewBlobKey('');
+                            await loadBlobKeys();
+                          } else {
+                            toast.error('Fehler beim Speichern');
+                          }
+                        } catch (error) {
+                          toast.error(String(error));
+                        }
+                      }}
+                      disabled={!newBlobKey.trim()}
+                      className="shrink-0 rounded-lg bg-emerald-600 text-white border border-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-semibold transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+                    >
+                      Hinzufügen
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {!isAuthed && (
+              <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
+                <p className="text-sm text-blue-700">
+                  Melden Sie sich an, um BLOB Read Write Keys zu verwalten.
+                </p>
+              </div>
+            )}
           </section>
 
           {/*
@@ -339,7 +388,7 @@ export default function SettingsPage() {
       </main>
 
       {/* Login Modal */}
-      {!isAuthed && !isLoading && (
+      {isMounted && !isAuthed && !isLoading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-lg max-w-md w-full mx-4">
             <div className="mb-6 flex items-center gap-3">
