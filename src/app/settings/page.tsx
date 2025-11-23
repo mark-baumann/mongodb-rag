@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const [newBlobKey, setNewBlobKey] = useState('');
   const [selectedBlobKeyIndex, setSelectedBlobKeyIndex] = useState(-1);
   const [showSelectedBlobKey, setShowSelectedBlobKey] = useState(false);
+  const [currentBlobKey, setCurrentBlobKey] = useState('');
 
   // Visual-only RAG settings
   const [chunkSize, setChunkSize] = useState(1000);
@@ -40,6 +41,12 @@ export default function SettingsPage() {
       if (res.ok) {
         const data = await res.json();
         setBlobKeys(data || []);
+        // Auto-select first key if available
+        if (data && data.length > 0) {
+          setSelectedBlobKeyIndex(0);
+        } else {
+          setSelectedBlobKeyIndex(-1);
+        }
       }
     } catch (error) {
       console.error('Error loading blob keys:', error);
@@ -80,6 +87,15 @@ export default function SettingsPage() {
       setBlobKeys([]);
     }
   }, [isAuthed, isLoading]);
+
+  // Update current blob key when selection changes
+  useEffect(() => {
+    if (selectedBlobKeyIndex >= 0 && blobKeys[selectedBlobKeyIndex]) {
+      setCurrentBlobKey(blobKeys[selectedBlobKeyIndex].key);
+    } else {
+      setCurrentBlobKey('');
+    }
+  }, [selectedBlobKeyIndex, blobKeys]);
 
   const handleSaveAll = () => {
     // Persist API key; other settings are visual only
@@ -186,6 +202,16 @@ export default function SettingsPage() {
               <h2 className="text-lg font-semibold text-gray-900">BLOB READ WRITE TOKEN</h2>
             </div>
             <p className="mb-4 text-sm text-gray-600">Verwalte deine BLOB Read Write Keys.</p>
+
+            {/* Current Key Display */}
+            {currentBlobKey && (
+              <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <p className="text-sm font-medium text-emerald-800">Aktueller BLOB Key:</p>
+                <p className="text-xs text-emerald-600 mt-1 font-mono break-all">
+                  {currentBlobKey}
+                </p>
+              </div>
+            )}
 
             {isAuthed && (
               <div className="space-y-3">
@@ -295,6 +321,7 @@ export default function SettingsPage() {
                             toast.success('Schlüssel hinzugefügt');
                             setNewBlobKey('');
                             await loadBlobKeys();
+                            // The new key will be auto-selected in loadBlobKeys
                           } else {
                             toast.error('Fehler beim Speichern');
                           }
