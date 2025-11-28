@@ -12,19 +12,18 @@ type Props = {
 export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [podcastTopic, setPodcastTopic] = useState("");
   const [minutesPreset, setMinutesPreset] = useState<string>("5");
   const [showCustomMinutes, setShowCustomMinutes] = useState(false);
   const [podcastMinutes, setPodcastMinutes] = useState<number>(5);
+  const [podcastModel, setPodcastModel] = useState<string>("gpt-4o");
   const [podcastVoice, setPodcastVoice] = useState<string>("alloy");
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [stylePreset, setStylePreset] = useState<string>("sachlich");
   const [showCustomStyle, setShowCustomStyle] = useState<boolean>(false);
   const [podcastPersona, setPodcastPersona] = useState<string>("");
-  const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [ttsChunkSize, setTtsChunkSize] = useState<number>(4000);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [existingUrl, setExistingUrl] = useState<string | null>(initialUrl ?? null);
-  const [loadingExisting, setLoadingExisting] = useState(false);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
 
   // Prefetch existing saved podcast on mount so play is available immediately
@@ -44,23 +43,7 @@ export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
     };
   }, [documentId]);
 
-  const openDialog = async () => {
-    setIsDialogOpen(true);
-    setLoadingExisting(true);
-    try {
-      const res = await fetch(`/api/podcast?documentId=${encodeURIComponent(documentId)}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.url) setExistingUrl(data.url);
-      } else {
-        setExistingUrl(null);
-      }
-    } catch {
-      setExistingUrl(null);
-    } finally {
-      setLoadingExisting(false);
-    }
-  };
+  const openDialog = () => setIsDialogOpen(true);
   const closeDialog = () => setIsDialogOpen(false);
 
   const openPlayer = async () => {
@@ -168,26 +151,6 @@ export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
             <h2 className="mb-4 text-xl font-bold">Podcast erstellen</h2>
 
             <div className="space-y-4">
-              {loadingExisting ? (
-                <div className="text-sm text-gray-600">Prüfe vorhandene Version…</div>
-              ) : existingUrl ? (
-                <div className="rounded-md border border-emerald-100 bg-emerald-50 p-3">
-                  <p className="mb-2 text-sm font-semibold text-emerald-800">Gespeicherter Podcast</p>
-                  <audio controls preload="metadata" src={existingUrl} className="w-full" />
-                  <p className="mt-2 text-xs text-emerald-900">Diese Version ist gespeichert. Du kannst sie jederzeit wieder anhören.</p>
-                </div>
-              ) : null}
-
-              <div>
-                <label className="mb-1 block text-sm font-medium">Thema/Beschreibung (optional)</label>
-                <input
-                  type="text"
-                  value={podcastTopic}
-                  onChange={(e) => setPodcastTopic(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2"
-                  placeholder="Worüber soll gesprochen werden?"
-                />
-              </div>
 
               <div>
                 <label className="mb-1 block text-sm font-medium">Länge (Minuten)</label>
@@ -236,6 +199,21 @@ export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
               </div>
 
               <div>
+                <label className="mb-1 block text-sm font-medium">Sprachmodell</label>
+                <select
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2"
+                  value={podcastModel}
+                  onChange={(e) => setPodcastModel(e.target.value)}
+                >
+                  <option value="gpt-4o">ChatGPT 4o (Empfohlen)</option>
+                  <option value="gpt-4o-mini">ChatGPT 4o Mini (Schnell)</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                  <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Experimentell)</option>
+                </select>
+              </div>
+
+              <div>
                 <label className="mb-1 block text-sm font-medium">Stimme</label>
                 <select
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2"
@@ -252,78 +230,62 @@ export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium">Stil</label>
-                <select
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2"
-                  value={stylePreset}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setStylePreset(val);
-                    setShowCustomStyle(val === "custom");
-                  }}
-                >
-                  <option value="sachlich">Sachlich</option>
-                  <option value="erklärend">Erklärend</option>
-                  <option value="freundlich">Freundlich</option>
-                  <option value="analytisch">Analytisch</option>
-                  <option value="humorvoll">Humorvoll</option>
-                  <option value="motivierend">Motivierend</option>
-                  <option value="erzählerisch">Erzählerisch</option>
-                  <option value="technisch">Technisch</option>
-                  <option value="custom">Benutzerdefiniert…</option>
-                </select>
-                {showCustomStyle && (
-                  <input
-                    type="text"
-                    value={podcastPersona}
-                    onChange={(e) => setPodcastPersona(e.target.value)}
-                    placeholder="Eigener Stil, z. B. journalistisch, locker, visionär"
-                    className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2"
-                  />
-                )}
-              </div>
-
-              <div>
-                <label className="mb-1 block text-sm font-medium">Sprechtempo</label>
-                <select
-                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2"
-                  value={String(playbackRate)}
-                  onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
-                >
-                  <option value="0.9">Langsam (0.9x)</option>
-                  <option value="1">Normal (1.0x)</option>
-                  <option value="1.1">Leicht schneller (1.1x)</option>
-                  <option value="1.25">Schneller (1.25x)</option>
-                  <option value="1.5">Sehr schnell (1.5x)</option>
-                </select>
-              </div>
-
-              <div>
                 <button
                   type="button"
-                  className="text-sm text-emerald-700 hover:text-emerald-800"
-                  onClick={() => {
-                    // toggle advanced options (currently only TTS chunk size)
-                    const next = ttsChunkSize === 4000 ? 4001 : 4000; // force rerender on toggle area
-                    setTtsChunkSize(next);
-                    setTtsChunkSize(next === 4000 ? 4001 : 4000);
-                  }}
+                  className="text-sm text-emerald-700 hover:text-emerald-800 font-medium"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
                 >
-                  Erweiterte Optionen anzeigen/ausblenden
+                  {showAdvanced ? "Erweiterte Optionen ausblenden" : "Erweiterte Optionen anzeigen"}
                 </button>
-                <div className="mt-2 space-y-2">
-                  <label className="block text-sm font-medium">Segmentgröße (fortgeschritten)</label>
-                  <input
-                    type="number"
-                    min={1000}
-                    max={8000}
-                    step={100}
-                    value={ttsChunkSize}
-                    onChange={(e) => setTtsChunkSize(parseInt(e.target.value || "4000", 10))}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2"
-                  />
-                  <p className="text-xs text-gray-500">Größe der TTS-Textsegmente. Kleinere Werte können Fehler vermeiden.</p>
-                </div>
+                {showAdvanced && (
+                  <div className="mt-3 space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium">Stil</label>
+                      <select
+                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2"
+                        value={stylePreset}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setStylePreset(val);
+                          setShowCustomStyle(val === "custom");
+                        }}
+                      >
+                        <option value="sachlich">Sachlich</option>
+                        <option value="erklärend">Erklärend</option>
+                        <option value="freundlich">Freundlich</option>
+                        <option value="analytisch">Analytisch</option>
+                        <option value="humorvoll">Humorvoll</option>
+                        <option value="motivierend">Motivierend</option>
+                        <option value="erzählerisch">Erzählerisch</option>
+                        <option value="technisch">Technisch</option>
+                        <option value="custom">Benutzerdefiniert…</option>
+                      </select>
+                      {showCustomStyle && (
+                        <input
+                          type="text"
+                          value={podcastPersona}
+                          onChange={(e) => setPodcastPersona(e.target.value)}
+                          placeholder="Eigener Stil, z. B. journalistisch, locker, visionär"
+                          className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2"
+                        />
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium">Segmentgröße</label>
+                      <input
+                        type="number"
+                        min={1000}
+                        max={8000}
+                        step={100}
+                        value={ttsChunkSize}
+                        onChange={(e) => setTtsChunkSize(parseInt(e.target.value || "4000", 10))}
+                        className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">Größe der TTS-Textsegmente. Kleinere Werte können Fehler vermeiden.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
