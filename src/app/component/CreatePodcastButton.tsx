@@ -9,6 +9,16 @@ type Props = {
   initialUrl?: string;
 };
 
+// OpenAI TTS Stimmen (verwendet für alle Modelle)
+const Voices = [
+  { value: 'alloy', label: 'Alloy' },
+  { value: 'echo', label: 'Echo' },
+  { value: 'fable', label: 'Fable' },
+  { value: 'onyx', label: 'Onyx' },
+  { value: 'nova', label: 'Nova' },
+  { value: 'shimmer', label: 'Shimmer' },
+];
+
 export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -71,11 +81,10 @@ export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           documentId,
-          topic: podcastTopic.trim(),
           targetMinutes: Number.isFinite(podcastMinutes) ? podcastMinutes : 5,
+          model: podcastModel,
           voice: podcastVoice,
           persona: showCustomStyle ? podcastPersona.trim() : stylePreset,
-          speakingRate: playbackRate === 1 ? "normal" : playbackRate < 1 ? "langsam" : "schnell",
           ttsChunkSize,
         }),
       });
@@ -220,13 +229,15 @@ export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
                   value={podcastVoice}
                   onChange={(e) => setPodcastVoice(e.target.value)}
                 >
-                  <option value="alloy">Alloy</option>
-                  <option value="echo">Echo</option>
-                  <option value="fable">Fable</option>
-                  <option value="onyx">Onyx</option>
-                  <option value="nova">Nova</option>
-                  <option value="shimmer">Shimmer</option>
+                  {Voices.map(voice => (
+                    <option key={voice.value} value={voice.value}>
+                      {voice.label}
+                    </option>
+                  ))}
                 </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  OpenAI TTS Stimmen
+                </p>
               </div>
 
               <div>

@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { getCollection, getMongoClient } from '@/utils/openai';
 import OpenAI from 'openai';
+import { GoogleGenAI } from '@google/genai';
 import { list, put } from '@vercel/blob';
 
 const AllowedVoices = ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'] as const;
 type TTSVoice = typeof AllowedVoices[number];
+
 const toVoice = (v: unknown): TTSVoice => {
   if (typeof v !== 'string') return 'alloy';
   const s = v.trim().toLowerCase();
@@ -16,58 +18,237 @@ const toVoice = (v: unknown): TTSVoice => {
 
 const openai = new OpenAI();
 
+// Initialisierung des neuen SDKs
+const genAI = process.env.GOOGLE_API_KEY
+  ? new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY })
+  : null;
+
+// Modell-spezifische Kontext-Limits
+const contextLimits: Record<string, number> = {
+  'gpt-4o': 24000,
+  'gpt-4o-mini': 16000,
+  'gemini-1.5-pro': 100000,
+  'gemini-1.5-flash': 50000,
+  'gemini-2.0-flash-exp': 50000,
+  'gemini-pro-latest': 100000,
+  'gemini-flash-latest': 50000,
+};
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+function buildPodcastPrompt(params: {
+  context: string;
+  persona: string;
+  targetWords: number;
+  minutes: number;
+}): string {
+  const { context, persona, targetWords, minutes } = params;
+
+  return `Du bist ein professioneller deutschsprachiger Podcast-Autor mit jahrelanger Erfahrung in der Erstellung fesselnder Audio-Inhalte.
+
+AUFGABE: Erstelle ein natürlich klingendes, gesprochenes Podcast-Skript auf Deutsch.
+
+QUALITÄTSANFORDERUNGEN:
+- Verwende einen gesprächigen, authentischen Ton - als würdest du direkt mit dem Hörer sprechen
+- Baue eine klare Struktur auf: Einstieg → Hauptteil → Zusammenfassung
+- Nutze rhetorische Fragen, um den Hörer einzubeziehen
+- Verwende konkrete Beispiele und Analogien, um komplexe Konzepte zu erklären
+- Variiere Satzlänge und -struktur für natürlichen Sprachfluss
+- Füge gelegentlich Übergänge ein ("Schauen wir uns das genauer an...", "Interessant ist auch...")
+
+EINSCHRÄNKUNGEN:
+- Keine Aufzählungen, Überschriften oder Markdown-Formatierung
+- Verwende NUR Fakten aus dem bereitgestellten Kontext
+- Spekuliere nicht über fehlende Informationen
+- Vermeide Füllwörter und unnötige Wiederholungen
+
+STIL: ${persona}
+
+Kontext (Auszug aus dem Dokument):
+
+${context}
+
+Erstelle ein zusammenhängendes Monolog-Skript mit ca. ${targetWords} Wörtern (≈ ${minutes.toFixed(2)} Minuten bei normaler Sprechgeschwindigkeit).`;
+}
+
+// Generiere Podcast-Skript mit dem gewählten Modell
+async function generatePodcastScript(params: {
+  model: string;
+  context: string;
+  persona: string;
+  targetWords: number;
+  minutes: number;
+}): Promise<string> {
+  const { model, context, persona, targetWords, minutes } = params;
+  const prompt = buildPodcastPrompt({ context, persona, targetWords, minutes });
+
+  console.log(`Generating podcast script with model request: ${model}`);
+
+  // OpenAI Modelle
+  if (model.startsWith('gpt-')) {
+    try {
+      const completion = await openai.chat.completions.create({
+        model: model,
+        temperature: 0.7,
+        messages: [
+          { role: 'system', content: 'Du bist ein Experte für die Erstellung ansprechender Podcast-Skripte auf Deutsch.' },
+          { role: 'user', content: prompt },
+        ],
+        max_tokens: 4000,
+      });
+      const script = (completion.choices?.[0]?.message?.content ?? '').toString().trim();
+      console.log(`OpenAI script generated, length: ${script.length}`);
+      return script;
+    } catch (error) {
+      console.error(`OpenAI script generation failed for model ${model}:`, error);
+      throw error;
+    }
+  }
+
+  // Gemini Modelle
+  if (model.startsWith('gemini-')) {
+    if (!genAI) {
+      throw new Error('Google API key not configured');
+    }
+
+    // MAPPING: Übersetzt Frontend-Namen in API-Namen, die laut deinem Log existieren
+    const modelMapping: Record<string, string> = {
+        'gemini-1.5-pro': 'gemini-pro-latest',       // Mapping basierend auf deinen Logs
+        'gemini-1.5-flash': 'gemini-flash-latest',   // Mapping basierend auf deinen Logs
+        'gemini-2.0-flash-exp': 'gemini-2.0-flash',  // Mapping auf stabile Version
+    };
+
+    // Nutze den gemappten Namen oder falle auf den ursprünglichen Namen zurück
+    const targetModel = modelMapping[model] || model;
+    
+    if (targetModel !== model) {
+        console.log(`Mapped model '${model}' to available API model '${targetModel}'`);
+    }
+
+    try {
+      const result = await genAI.models.generateContent({
+        model: targetModel, 
+        contents: prompt,
+        config: {
+            temperature: 0.7,
+            maxOutputTokens: 8192,
+        }
+      });
+      
+      const script = result.text ? result.text.trim() : '';
+      if (!script) throw new Error('Empty response from Gemini');
+      
+      console.log(`Gemini script generated with ${targetModel}, length: ${script.length}`);
+      return script;
+
+    } catch (error: any) {
+      console.error(`Gemini generation failed for ${targetModel}:`, error.message);
+      
+      // FALLBACK zu FLASH (Latest), falls Pro fehlschlägt
+      if (targetModel.includes('pro')) {
+        console.log('--- FALLBACK: Switching to gemini-flash-latest ---');
+        try {
+          const resultFallback = await genAI.models.generateContent({
+            model: 'gemini-flash-latest',
+            contents: prompt,
+            config: { temperature: 0.7 }
+          });
+          const scriptFallback = resultFallback.text ? resultFallback.text.trim() : '';
+          console.log(`Gemini script generated with fallback, length: ${scriptFallback.length}`);
+          return scriptFallback;
+        } catch (flashError) {
+             console.error('Gemini fallback also failed', flashError);
+             throw error; 
+        }
+      }
+      throw error;
+    }
+  }
+
+  throw new Error(`Unsupported model: ${model}`);
+}
 
 async function* textChunker(text: string, maxChunkSize: number): AsyncGenerator<string> {
   let currentChunk = '';
   const sentences = text.split(/(?<=[.?!])\s+/g);
-
   for (const sentence of sentences) {
     if (currentChunk.length + sentence.length > maxChunkSize) {
       yield currentChunk;
       currentChunk = '';
     }
-    currentChunk += sentence;
+    currentChunk += sentence + ' ';
   }
-
   if (currentChunk) {
-    yield currentChunk;
+    yield currentChunk.trim();
   }
 }
 
+function mapVoiceToOpenAI(voice: string): TTSVoice {
+  if ((AllowedVoices as readonly string[]).includes(voice)) {
+    return voice as TTSVoice;
+  }
+  const geminiToOpenAI: Record<string, TTSVoice> = {
+    'Achernar': 'nova', 'Aoede': 'shimmer', 'Autonoe': 'nova', 'Callirrhoe': 'shimmer',
+    'Despina': 'nova', 'Erinome': 'shimmer', 'Gacrux': 'nova', 'Kore': 'shimmer',
+    'Laomedeia': 'nova', 'Leda': 'shimmer', 'Pulcherrima': 'nova', 'Schedar': 'shimmer',
+    'Sulafat': 'nova', 'Vindemiatrix': 'shimmer', 'Zephyr': 'nova',
+    'Achird': 'onyx', 'Algenib': 'echo', 'Algieba': 'fable', 'Alnilam': 'onyx',
+    'Charon': 'echo', 'Enceladus': 'fable', 'Fenrir': 'onyx', 'Iapetus': 'echo',
+    'Orus': 'fable', 'Puck': 'onyx', 'Rasalgethi': 'echo', 'Sadachbia': 'fable',
+    'Sadaltager': 'onyx', 'Umbriel': 'echo', 'Zubenelgenubi': 'fable',
+  };
+  return geminiToOpenAI[voice] || 'alloy';
+}
+
+async function synthesizeSpeech(params: {
+  text: string;
+  voice: string;
+  model: string;
+}): Promise<Buffer> {
+  const { text, voice } = params;
+  const openAIVoice = mapVoiceToOpenAI(voice);
+  const speech = await openai.audio.speech.create({
+    model: 'tts-1',
+    voice: openAIVoice,
+    input: text,
+  });
+  return Buffer.from(await speech.arrayBuffer());
+}
+
 export async function POST(req: NextRequest) {
-  const authed = cookies().get('auth')?.value === '1';
+  const cookieStore = cookies();
+  const authed = cookieStore.get('auth')?.value === '1';
+  
   if (!authed) {
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
+  
   console.log('Podcast generation request received');
+  const body = await req.json();
   const {
     documentId,
-    topic = '',
     targetMinutes,
+    model = 'gpt-4o',
     voice = 'alloy',
-    persona = '',
-    speakingRate = 'normal', // 'langsam' | 'normal' | 'schnell'
+    persona = 'sachlich',
     ttsChunkSize = 4000,
-    maxContextChars = 12000,
-  } = await req.json();
-  console.log(`Document ID: ${documentId}`);
+  } = body;
+  
+  console.log(`Document ID: ${documentId}, Model: ${model}`);
 
   if (!documentId) {
-    console.error('Missing documentId');
     return NextResponse.json({ message: 'Missing documentId' }, { status: 400 });
   }
 
   try {
-    // Ensure MongoDB connection is healthy
     try {
       await getMongoClient().db('admin').command({ ping: 1 });
     } catch (e) {
       console.warn('MongoDB ping failed before query', e);
     }
 
-    // 1. Get document content from embeddings
+    // 1. Get document content
     console.log('Fetching document from vector store...');
     const vectorCollection = getCollection();
     const chunks = await vectorCollection
@@ -77,87 +258,84 @@ export async function POST(req: NextRequest) {
     console.log(`Text retrieved from vector store, length: ${text.length}`);
 
     if (!text.trim()) {
-      console.error('No textual content found in vector store');
       return NextResponse.json(
         { message: 'Das Dokument enthält keinen auslesbaren Text für den Podcast.' },
         { status: 400 },
       );
     }
 
-    // 2. Build a podcast script first based on optional topic and target duration
+    // 2. Generate Script
     const minutes =
       typeof targetMinutes === 'number' && Number.isFinite(targetMinutes)
         ? Math.max(0.25, Math.min(120, targetMinutes))
         : 5;
-    const approxWords = Math.round(minutes * 140); // ~140 wpm
-    const promptContext = text.length > maxContextChars ? text.slice(0, maxContextChars) : text; // keep prompt bounded
+    const approxWords = Math.round(minutes * 140);
+
+    const maxContextChars = contextLimits[model] || 16000;
+    const promptContext = text.length > maxContextChars ? text.slice(0, maxContextChars) : text;
 
     let script = '';
     try {
-      console.log('Generating podcast script via Chat Completions...');
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        temperature: 0.7,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'Du bist ein professioneller deutschsprachiger Podcast-Autor. Verfasse ein natürlich klingendes, gesprochenes Skript. Keine Aufzählungen, keine Überschriften, keine Markdown-Formatierung. Verwende nur Fakten aus dem Kontext. Wenn Informationen fehlen, spekuliere nicht.',
-          },
-          {
-            role: 'user',
-            content: [
-              `Kontext (Auszug aus dem Dokument):\n\n${promptContext}`,
-              '',
-              topic ? `Thema/Wunschfokus: ${topic}` : '',
-              persona ? `Persona/Stil: ${persona}` : '',
-              speakingRate ? `Sprechtempo: ${speakingRate} (Passe den Sprachfluss im Text entsprechend an — z. B. mit Übergängen, Pausenhinweisen).` : '',
-              `Bitte schreibe ein zusammenhängendes Podcast-Monolog-Skript auf Deutsch mit etwa ${approxWords} Wörtern (≈ ${minutes.toFixed(2)} Minuten bei normaler Sprechgeschwindigkeit).`
-            ].filter(Boolean).join('\n')
-          },
-        ],
-        max_tokens: 4000,
+      console.log('Generating podcast script...');
+      script = await generatePodcastScript({
+        model,
+        context: promptContext,
+        persona,
+        targetWords: approxWords,
+        minutes,
       });
-      script = (completion.choices?.[0]?.message?.content ?? '').toString().trim();
-      console.log(`Script length: ${script.length}`);
+      console.log(`Script generated successfully, length: ${script.length}`);
     } catch (scriptError) {
-      console.error('Failed to generate podcast script, falling back to raw text excerpt.', scriptError);
-      script = text.slice(0, 8000);
+      console.error('Failed to generate podcast script with primary model, trying fallback...', scriptError);
+
+      try {
+        if (model !== 'gpt-4o-mini') {
+          console.log('Attempting fallback to gpt-4o-mini...');
+          script = await generatePodcastScript({
+            model: 'gpt-4o-mini',
+            context: promptContext.slice(0, 16000),
+            persona,
+            targetWords: approxWords,
+            minutes,
+          });
+        } else {
+          throw scriptError;
+        }
+      } catch (fallbackError) {
+        console.error('Fallback also failed, using raw text excerpt.', fallbackError);
+        script = text.slice(0, 8000);
+      }
     }
 
-    // 3. Convert the script to audio (accumulate -> persist -> respond)
+    // 3. Convert to Audio
     const estimatedSeconds = Math.round((script.split(/\s+/).length / 140) * 60);
     const buffers: Buffer[] = [];
-    const size =
-      typeof ttsChunkSize === 'number' && ttsChunkSize > 500
-        ? Math.min(ttsChunkSize, 8000)
-        : 4000;
+    const size = typeof ttsChunkSize === 'number' && ttsChunkSize > 500 ? Math.min(ttsChunkSize, 8000) : 4000;
+        
     for await (const chunk of textChunker(script, size)) {
+      if (!chunk.trim()) continue;
       console.log(`Processing TTS chunk of length ${chunk.length}`);
-      const speech = await openai.audio.speech.create({
-        model: 'tts-1',
-        voice: toVoice(voice),
-        input: chunk,
+      const buffer = await synthesizeSpeech({
+        text: chunk,
+        voice: voice,
+        model: model,
       });
-      const buffer = Buffer.from(await speech.arrayBuffer());
       buffers.push(buffer);
     }
 
     const finalBuffer = Buffer.concat(buffers);
     if (finalBuffer.length === 0) {
-      console.error('No audio produced by TTS');
-      return NextResponse.json(
-        { message: 'Konnte keine Audiodaten generieren.' },
-        { status: 500 },
-      );
+      return NextResponse.json({ message: 'Konnte keine Audiodaten generieren.' }, { status: 500 });
     }
 
+    // 4. Persist
     const key = `podcasts/${documentId}.mp3`;
     let blobUrl: string | undefined;
     try {
       const result = await put(key, finalBuffer, {
         access: 'public',
         contentType: 'audio/mpeg',
+        addRandomSuffix: false 
       });
       blobUrl = result.url;
       console.log('Saved podcast to blob storage:', key, finalBuffer.length);
@@ -169,15 +347,14 @@ export async function POST(req: NextRequest) {
       headers: {
         'Content-Type': 'audio/mpeg',
         'X-Estimated-Duration': String(estimatedSeconds),
-        'X-Podcast-Topic': topic ? String(topic) : 'Podcast',
-        'X-Voice': toVoice(voice),
+        'X-Podcast-Model': model,
+        'X-Voice': mapVoiceToOpenAI(voice),
         ...(blobUrl ? { 'X-Podcast-Url': blobUrl, 'X-Podcast-Key': key } : {}),
       },
     });
   } catch (error) {
     console.error('Error creating podcast:', error);
-    const message =
-      error instanceof Error ? error.message : 'Internal Server Error';
+    const message = error instanceof Error ? error.message : 'Internal Server Error';
     return NextResponse.json({ message }, { status: 500 });
   }
 }
@@ -189,13 +366,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: 'Missing documentId' }, { status: 400, headers: { 'cache-control': 'no-store' } });
   }
   try {
-    // Robust search: iterate podcasts/ folder and find matching filename
     let found: { url: string; pathname: string } | null = null;
     let cursor: string | undefined = undefined;
     do {
       const resp = await list({ prefix: 'podcasts/', cursor });
       for (const b of resp.blobs) {
-        if (b.pathname === `podcasts/${documentId}.mp3` || b.pathname.endsWith(`/${documentId}.mp3`) || b.pathname.endsWith(`${documentId}.mp3`)) {
+        if (b.pathname.includes(documentId + '.mp3')) {
           found = { url: b.url, pathname: b.pathname };
           break;
         }
