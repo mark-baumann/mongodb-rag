@@ -78,7 +78,6 @@ export default function DocumentItem({ document, folders, podcastUrl }: Document
       });
 
       if (response.ok) {
-        alert(`Dokument wurde dem Ordner "${folderName}" hinzugefügt.`);
         setIsMoveModalOpen(false);
         router.refresh();
       } else {
