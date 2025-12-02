@@ -171,18 +171,18 @@ export default function PodcastPlayer() {
       />
 
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 text-white shadow-2xl border-t border-emerald-900/50 pb-safe">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-3 relative">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-3 sm:py-3 relative">
           {/* Close Button - Top Right */}
           <button
             onClick={() => setCurrentPodcast(null)}
-            className="absolute top-1 sm:top-2 right-2 sm:right-4 p-1.5 sm:p-2 hover:bg-emerald-600 rounded-full transition"
+            className="absolute top-2 sm:top-2 right-2 sm:right-4 p-1.5 sm:p-2 hover:bg-emerald-600 rounded-full transition z-10"
             title="Schließen"
           >
             <X className="h-4 w-4 sm:h-5 sm:w-5" />
           </button>
 
           {/* Progress Bar */}
-          <div className="mb-2 pr-10 sm:pr-12">
+          <div className="mb-3 sm:mb-2 pr-10 sm:pr-12">
             <input
               type="range"
               min={0}
@@ -197,15 +197,15 @@ export default function PodcastPlayer() {
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="flex items-center gap-2 sm:gap-4 pr-10 sm:pr-12">
-            {/* Title */}
-            <div className="flex-1 min-w-0 hidden xs:block">
+          {/* Controls - Centered Layout on Mobile */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 pr-10 sm:pr-12">
+            {/* Title - Above controls on mobile, left on desktop */}
+            <div className="w-full sm:flex-1 sm:min-w-0 text-center sm:text-left">
               <h3 className="font-semibold text-xs sm:text-sm truncate">{currentPodcast.title}</h3>
             </div>
 
-            {/* Playback Controls */}
-            <div className="flex items-center gap-0.5 sm:gap-1 mx-auto xs:mx-0">
+            {/* Playback Controls - Centered */}
+            <div className="flex items-center justify-center gap-2 sm:gap-3">
               {playlist.length > 1 && (
                 <button
                   onClick={(e) => {
@@ -215,19 +215,19 @@ export default function PodcastPlayer() {
                     playPrevious();
                   }}
                   disabled={!currentPodcast || playlist.findIndex((p) => p.documentId === currentPodcast.documentId) === 0}
-                  className="p-2 sm:p-2.5 hover:bg-emerald-600 rounded-full transition disabled:opacity-30 disabled:cursor-not-allowed active:bg-emerald-500"
+                  className="p-3 sm:p-2.5 hover:bg-emerald-600 rounded-full transition disabled:opacity-30 disabled:cursor-not-allowed active:bg-emerald-500"
                   title="Vorheriger Podcast"
                 >
-                  <SkipBack className="h-5 w-5 sm:h-6 sm:w-6" />
+                  <SkipBack className="h-6 w-6 sm:h-6 sm:w-6" />
                 </button>
               )}
 
               <button
                 onClick={togglePlayPause}
-                className="p-2.5 sm:p-3 bg-white text-emerald-700 hover:bg-emerald-50 rounded-full transition active:scale-95"
+                className="p-4 sm:p-3 bg-white text-emerald-700 hover:bg-emerald-50 rounded-full transition active:scale-95"
                 title={isPlaying ? 'Pause' : 'Play'}
               >
-                {isPlaying ? <Pause className="h-5 w-5 sm:h-6 sm:w-6" /> : <Play className="h-5 w-5 sm:h-6 sm:w-6 ml-0.5" />}
+                {isPlaying ? <Pause className="h-7 w-7 sm:h-6 sm:w-6" /> : <Play className="h-7 w-7 sm:h-6 sm:w-6 ml-0.5" />}
               </button>
 
               {playlist.length > 1 && (
@@ -239,30 +239,28 @@ export default function PodcastPlayer() {
                     playNext();
                   }}
                   disabled={!currentPodcast || playlist.findIndex((p) => p.documentId === currentPodcast.documentId) === playlist.length - 1}
-                  className="p-2 sm:p-2.5 hover:bg-emerald-600 rounded-full transition disabled:opacity-30 disabled:cursor-not-allowed active:bg-emerald-500"
+                  className="p-3 sm:p-2.5 hover:bg-emerald-600 rounded-full transition disabled:opacity-30 disabled:cursor-not-allowed active:bg-emerald-500"
                   title="Nächster Podcast"
                 >
-                  <SkipForward className="h-5 w-5 sm:h-6 sm:w-6" />
+                  <SkipForward className="h-6 w-6 sm:h-6 sm:w-6" />
                 </button>
               )}
             </div>
 
-            {/* Volume */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="hidden md:flex items-center gap-2">
-                <button onClick={toggleMute} className="p-1 hover:bg-emerald-600 rounded transition">
-                  {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                </button>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={isMuted ? 0 : volume}
-                  onChange={handleVolumeChange}
-                  className="w-20 h-1 bg-emerald-900/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0"
-                />
-              </div>
+            {/* Volume - Hidden on mobile, right on desktop */}
+            <div className="hidden md:flex items-center gap-2">
+              <button onClick={toggleMute} className="p-1 hover:bg-emerald-600 rounded transition">
+                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+              </button>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={isMuted ? 0 : volume}
+                onChange={handleVolumeChange}
+                className="w-20 h-1 bg-emerald-900/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0"
+              />
             </div>
           </div>
         </div>
