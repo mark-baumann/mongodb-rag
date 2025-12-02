@@ -166,7 +166,7 @@ export default function PodcastPlayer() {
       <audio
         ref={audioRef}
         src={currentPodcast.url}
-        preload="metadata"
+        preload="auto"
         crossOrigin="anonymous"
       />
 

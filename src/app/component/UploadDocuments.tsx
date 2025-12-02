@@ -77,7 +77,10 @@ export default function UploadDocuments() {
     let documentId: string | null = null;
     let documentName: string = '';
 
+    const toastId = toast.loading('Datei wird hochgeladen...');
+
     try {
+      toast.update(toastId, { render: 'PDF wird hochgeladen...', type: 'info', isLoading: true });
       const uploadResult = await uploadFileWithProgress(formData);
       documentId = uploadResult;
       documentName = file.name;
@@ -85,6 +88,7 @@ export default function UploadDocuments() {
       console.log('Upload complete, documentId:', documentId);
       console.log('Auto-generate enabled:', podcastConfig.autoGenerate);
 
+      toast.update(toastId, { render: 'PDF erfolgreich hochgeladen!', type: 'success', isLoading: false, autoClose: 2000 });
       scheduleProgressHide();
       router.refresh();
 
@@ -92,7 +96,7 @@ export default function UploadDocuments() {
       if (podcastConfig.autoGenerate && documentId) {
         console.log('Starting auto-generate podcast for:', documentId);
         setIsGeneratingPodcast(true);
-        toast.info('Podcast wird automatisch generiert...', { autoClose: false });
+        const podcastToastId = toast.loading('Podcast-Skript wird erstellt...');
 
         try {
           const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -112,6 +116,8 @@ export default function UploadDocuments() {
             persona: podcastConfig.persona,
           });
 
+          toast.update(podcastToastId, { render: `Podcast-Skript wird mit ${podcastConfig.model} erstellt...`, isLoading: true });
+
           const res = await fetch('/api/podcast', {
             method: 'POST',
             headers,
@@ -128,19 +134,31 @@ export default function UploadDocuments() {
           console.log('Podcast API response status:', res.status);
 
           if (res.ok) {
-            toast.dismiss();
-            toast.success('Podcast erfolgreich erstellt!');
+            toast.update(podcastToastId, {
+              render: 'Podcast erfolgreich erstellt!',
+              type: 'success',
+              isLoading: false,
+              autoClose: 3000
+            });
             router.refresh();
           } else {
             const data = await res.json().catch(() => ({}));
-            toast.dismiss();
-            toast.error(data.message || 'Podcast-Generierung fehlgeschlagen');
+            toast.update(podcastToastId, {
+              render: data.message || 'Podcast-Generierung fehlgeschlagen',
+              type: 'error',
+              isLoading: false,
+              autoClose: 5000
+            });
             console.error('Podcast API error:', data);
           }
         } catch (podcastError) {
           console.error('Podcast generation failed', podcastError);
-          toast.dismiss();
-          toast.error('Podcast-Generierung fehlgeschlagen');
+          toast.update(podcastToastId, {
+            render: 'Podcast-Generierung fehlgeschlagen',
+            type: 'error',
+            isLoading: false,
+            autoClose: 5000
+          });
         } finally {
           setIsGeneratingPodcast(false);
         }
@@ -149,7 +167,12 @@ export default function UploadDocuments() {
       }
     } catch (error) {
       console.error('Upload failed', error);
-      alert('Der Upload ist fehlgeschlagen. Bitte erneut versuchen.');
+      toast.update(toastId, {
+        render: 'Upload fehlgeschlagen. Bitte erneut versuchen.',
+        type: 'error',
+        isLoading: false,
+        autoClose: 5000
+      });
       resetProgress();
     } finally {
       setIsUploading(false);

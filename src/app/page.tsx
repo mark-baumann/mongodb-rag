@@ -187,14 +187,14 @@ const Home = async () => {
   });
 
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div className='min-h-screen bg-gray-50 pb-safe'>
       <NavBar />
       <PlaylistInitializer items={orderedPlaylist} />
 
-      <div className='max-w-5xl mx-auto p-8'>
-        <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-          <h1 className='text-3xl font-bold text-gray-900'>Dokumente</h1>
-          <div className='flex flex-wrap items-center gap-3 justify-start sm:flex-nowrap sm:justify-end sm:gap-4 w-full sm:w-auto'>
+      <div className='max-w-5xl mx-auto px-4 py-6 sm:p-8'>
+        <div className="flex flex-wrap justify-between items-center mb-4 sm:mb-6 gap-3 sm:gap-4">
+          <h1 className='text-2xl sm:text-3xl font-bold text-gray-900'>Dokumente</h1>
+          <div className='flex flex-wrap items-center gap-2 sm:gap-3 justify-start sm:flex-nowrap sm:justify-end w-full sm:w-auto'>
             <CreateFolderButton />
             <UploadDocuments />
             {(documents.length > 0 || folders.length > 0) && <DeleteAllButton />}

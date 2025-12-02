@@ -5,6 +5,7 @@ import { Mic, Loader2, RefreshCw, Play } from "lucide-react";
 import { ClipLoader } from "react-spinners";
 import { usePodcastMode } from "./PodcastModeProvider";
 import { useApiKey } from "./ApiKeyProvider";
+import { toast } from "react-toastify";
 
 type Props = {
   documentId: string;
@@ -107,6 +108,9 @@ export default function CreatePodcastButton({ documentId, initialUrl, documentTi
     setIsCreating(true);
     setAudioUrl(null);
     setIsDialogOpen(false);
+
+    const toastId = toast.loading(`Podcast wird erstellt (${podcastMinutes} Min.)...`);
+
     try {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
 
@@ -117,6 +121,8 @@ export default function CreatePodcastButton({ documentId, initialUrl, documentTi
       if (googleApiKey) {
         headers["X-Google-API-Key"] = googleApiKey;
       }
+
+      toast.update(toastId, { render: `Podcast-Skript wird mit ${podcastModel} erstellt...`, isLoading: true });
 
       const res = await fetch("/api/podcast", {
         method: "POST",
@@ -137,9 +143,16 @@ export default function CreatePodcastButton({ documentId, initialUrl, documentTi
           const data = await res.json();
           if (typeof data?.message === "string" && data.message) message = data.message;
         } catch {}
-        alert(message);
+        toast.update(toastId, {
+          render: message,
+          type: "error",
+          isLoading: false,
+          autoClose: 5000
+        });
         return;
       }
+
+      toast.update(toastId, { render: 'Audio wird generiert...', isLoading: true });
 
       const blob = await res.blob();
       const headerUrl = res.headers.get('X-Podcast-Url');
@@ -162,9 +175,21 @@ export default function CreatePodcastButton({ documentId, initialUrl, documentTi
           }
         } catch {}
       }
+
+      toast.update(toastId, {
+        render: 'Podcast erfolgreich erstellt!',
+        type: "success",
+        isLoading: false,
+        autoClose: 3000
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unbekannter Fehler";
-      alert(`Erstellen des Podcasts fehlgeschlagen: ${msg}`);
+      toast.update(toastId, {
+        render: `Erstellen des Podcasts fehlgeschlagen: ${msg}`,
+        type: "error",
+        isLoading: false,
+        autoClose: 5000
+      });
     } finally {
       setIsCreating(false);
     }

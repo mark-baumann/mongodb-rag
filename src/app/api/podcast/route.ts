@@ -333,24 +333,45 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Convert to Audio
+    // 3. Convert to Audio with parallel processing
+    console.log('Starting TTS conversion...');
     const estimatedSeconds = Math.round((script.split(/\s+/).length / 140) * 60);
-    const buffers: Buffer[] = [];
     const size = typeof ttsChunkSize === 'number' && ttsChunkSize > 500 ? Math.min(ttsChunkSize, 8000) : 4000;
-        
+
+    // Collect all chunks first
+    const ttsChunks: string[] = [];
     for await (const chunk of textChunker(script, size)) {
-      if (!chunk.trim()) continue;
-      console.log(`Processing TTS chunk of length ${chunk.length}`);
-      const buffer = await synthesizeSpeech({
-        text: chunk,
-        voice: voice,
-        model: model,
-        openaiApiKey,
-      });
-      buffers.push(buffer);
+      if (chunk.trim()) ttsChunks.push(chunk);
+    }
+    console.log(`Total TTS chunks to process: ${ttsChunks.length}`);
+
+    // Process chunks in parallel batches of 3 to respect rate limits
+    const batchSize = 3;
+    const buffers: Buffer[] = new Array(ttsChunks.length);
+
+    for (let i = 0; i < ttsChunks.length; i += batchSize) {
+      const batch = ttsChunks.slice(i, Math.min(i + batchSize, ttsChunks.length));
+      const batchIndex = i;
+
+      console.log(`Processing TTS batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(ttsChunks.length / batchSize)} (chunks ${i}-${i + batch.length - 1})`);
+
+      const batchPromises = batch.map((chunk, idx) =>
+        synthesizeSpeech({
+          text: chunk,
+          voice: voice,
+          model: model,
+          openaiApiKey,
+        }).then(buffer => ({ buffer, index: batchIndex + idx }))
+      );
+
+      const batchResults = await Promise.all(batchPromises);
+      for (const { buffer, index } of batchResults) {
+        buffers[index] = buffer;
+      }
     }
 
     const finalBuffer = Buffer.concat(buffers);
+    console.log('TTS conversion completed');
     if (finalBuffer.length === 0) {
       return NextResponse.json({ message: 'Konnte keine Audiodaten generieren.' }, { status: 500 });
     }
