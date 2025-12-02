@@ -171,7 +171,7 @@ export default function PodcastPlayer() {
       />
 
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 text-white shadow-2xl border-t border-emerald-900/50 pb-safe">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-3 relative">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-3 pb-2 sm:py-3 relative">
           {/* Close Button - Top Right */}
           <button
             onClick={() => setCurrentPodcast(null)}
@@ -182,7 +182,7 @@ export default function PodcastPlayer() {
           </button>
 
           {/* Progress Bar */}
-          <div className="mb-4 sm:mb-2 pr-10 sm:pr-12">
+          <div className="mb-2 sm:mb-2 pr-10 sm:pr-12">
             <input
               type="range"
               min={0}
@@ -198,7 +198,7 @@ export default function PodcastPlayer() {
           </div>
 
           {/* Controls - Shifted right on mobile */}
-          <div className="flex items-center justify-center gap-2 sm:gap-3 pr-10 sm:pr-12 ml-6 sm:ml-0 -mt-1 sm:mt-0">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 pr-10 sm:pr-12 ml-6 sm:ml-0">
             {/* Playback Controls */}
             <div className="flex items-center justify-center gap-2 sm:gap-3">
               {playlist.length > 1 && (
