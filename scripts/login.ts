@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 export async function login(): Promise<{ browser: Browser; page: Page }> {
-  const browser = await chromium.launch({ headless: false }); // headless: true = unsichtbar
+  const browser = await chromium.launch({ headless: true }); // headless: true = unsichtbar
   const page = await browser.newPage();
 
   console.log("Oeffne Login-Seite ...");
