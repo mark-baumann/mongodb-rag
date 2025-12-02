@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ApiKeyProvider } from "./component/ApiKeyProvider";
+import { PodcastModeProvider } from "./component/PodcastModeProvider";
+import PodcastPlayer from "./component/PodcastPlayer";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -44,8 +46,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ApiKeyProvider>
-          {children}
-          <ToastContainer />
+          <PodcastModeProvider>
+            {children}
+            <PodcastPlayer />
+            <ToastContainer />
+          </PodcastModeProvider>
         </ApiKeyProvider>
       </body>
     </html>

@@ -3,10 +3,13 @@
 import { useEffect, useState } from "react";
 import { Mic, Loader2, RefreshCw, Play } from "lucide-react";
 import { ClipLoader } from "react-spinners";
+import { usePodcastMode } from "./PodcastModeProvider";
+import { useApiKey } from "./ApiKeyProvider";
 
 type Props = {
   documentId: string;
   initialUrl?: string;
+  documentTitle?: string;
 };
 
 // OpenAI TTS Stimmen (verwendet für alle Modelle)
@@ -19,7 +22,9 @@ const Voices = [
   { value: 'shimmer', label: 'Shimmer' },
 ];
 
-export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
+export default function CreatePodcastButton({ documentId, initialUrl, documentTitle }: Props) {
+  const { setCurrentPodcast, setIsPlaying, playlist, setPlaylist } = usePodcastMode();
+  const { apiKey, googleApiKey } = useApiKey();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [minutesPreset, setMinutesPreset] = useState<string>("5");
@@ -57,17 +62,44 @@ export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
   const closeDialog = () => setIsDialogOpen(false);
 
   const openPlayer = async () => {
-    if (!existingUrl) {
+    let url = existingUrl;
+    if (!url) {
       // Attempt fetch once more
       try {
         const res = await fetch(`/api/podcast?documentId=${encodeURIComponent(documentId)}`);
         if (res.ok) {
           const data = await res.json();
-          if (data?.url) setExistingUrl(data.url);
+          if (data?.url) {
+            setExistingUrl(data.url);
+            url = data.url;
+          }
         }
       } catch {}
     }
-    setIsPlayerOpen(true);
+
+    // Load into the main sticky player
+    if (url) {
+      const podcast = {
+        url: url,
+        title: documentTitle || `Dokument ${documentId}`,
+        documentId,
+      };
+
+      setCurrentPodcast(podcast);
+      setIsPlaying(true);
+
+      // Update playlist: add if not already there
+      const existingIndex = playlist.findIndex((p) => p.documentId === documentId);
+      if (existingIndex === -1) {
+        // Add to playlist maintaining current order
+        setPlaylist([...playlist, podcast]);
+      } else {
+        // Update existing entry with latest URL
+        const newPlaylist = [...playlist];
+        newPlaylist[existingIndex] = podcast;
+        setPlaylist(newPlaylist);
+      }
+    }
   };
   const closePlayer = () => setIsPlayerOpen(false);
 
@@ -76,9 +108,19 @@ export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
     setAudioUrl(null);
     setIsDialogOpen(false);
     try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+      // Add API keys to headers if available
+      if (apiKey) {
+        headers["X-OpenAI-API-Key"] = apiKey;
+      }
+      if (googleApiKey) {
+        headers["X-Google-API-Key"] = googleApiKey;
+      }
+
       const res = await fetch("/api/podcast", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({
           documentId,
           targetMinutes: Number.isFinite(podcastMinutes) ? podcastMinutes : 5,
@@ -327,27 +369,6 @@ export default function CreatePodcastButton({ documentId, initialUrl }: Props) {
         </div>
       )}
 
-      {isPlayerOpen && existingUrl && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-lg rounded-lg bg-white p-6 text-gray-800 shadow-xl">
-            <h3 className="mb-4 text-lg font-semibold">Podcast</h3>
-            <audio
-              controls
-              preload="metadata"
-              src={existingUrl}
-              className="w-full"
-            />
-            <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={closePlayer}
-                className="rounded-md px-4 py-2 text-gray-700 hover:bg-gray-100"
-              >
-                Schließen
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

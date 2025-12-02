@@ -16,12 +16,16 @@ const toVoice = (v: unknown): TTSVoice => {
     : 'alloy';
 };
 
-const openai = new OpenAI();
+// Helper to get API key from header or env
+function getOpenAIKey(req: NextRequest): string {
+  const headerKey = req.headers.get('X-OpenAI-API-Key');
+  return headerKey || process.env.OPENAI_API_KEY || '';
+}
 
-// Initialisierung des neuen SDKs
-const genAI = process.env.GOOGLE_API_KEY
-  ? new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY })
-  : null;
+function getGoogleAPIKey(req: NextRequest): string {
+  const headerKey = req.headers.get('X-Google-API-Key');
+  return headerKey || process.env.GOOGLE_API_KEY || '';
+}
 
 // Modell-spezifische Kontext-Limits
 const contextLimits: Record<string, number> = {
@@ -79,14 +83,20 @@ async function generatePodcastScript(params: {
   persona: string;
   targetWords: number;
   minutes: number;
+  openaiApiKey: string;
+  googleApiKey: string;
 }): Promise<string> {
-  const { model, context, persona, targetWords, minutes } = params;
+  const { model, context, persona, targetWords, minutes, openaiApiKey, googleApiKey } = params;
   const prompt = buildPodcastPrompt({ context, persona, targetWords, minutes });
 
   console.log(`Generating podcast script with model request: ${model}`);
 
   // OpenAI Modelle
   if (model.startsWith('gpt-')) {
+    if (!openaiApiKey) {
+      throw new Error('OpenAI API key not configured');
+    }
+    const openai = new OpenAI({ apiKey: openaiApiKey });
     try {
       const completion = await openai.chat.completions.create({
         model: model,
@@ -108,9 +118,10 @@ async function generatePodcastScript(params: {
 
   // Gemini Modelle
   if (model.startsWith('gemini-')) {
-    if (!genAI) {
+    if (!googleApiKey) {
       throw new Error('Google API key not configured');
     }
+    const genAI = new GoogleGenAI({ apiKey: googleApiKey });
 
     // MAPPING: Übersetzt Frontend-Namen in API-Namen, die laut deinem Log existieren
     const modelMapping: Record<string, string> = {
@@ -205,8 +216,13 @@ async function synthesizeSpeech(params: {
   text: string;
   voice: string;
   model: string;
+  openaiApiKey: string;
 }): Promise<Buffer> {
-  const { text, voice } = params;
+  const { text, voice, openaiApiKey } = params;
+  if (!openaiApiKey) {
+    throw new Error('OpenAI API key required for text-to-speech');
+  }
+  const openai = new OpenAI({ apiKey: openaiApiKey });
   const openAIVoice = mapVoiceToOpenAI(voice);
   const speech = await openai.audio.speech.create({
     model: 'tts-1',
@@ -217,14 +233,12 @@ async function synthesizeSpeech(params: {
 }
 
 export async function POST(req: NextRequest) {
-  const cookieStore = cookies();
-  const authed = cookieStore.get('auth')?.value === '1';
-  
-  if (!authed) {
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
-  
   console.log('Podcast generation request received');
+
+  // Get API keys from headers or env
+  const openaiApiKey = getOpenAIKey(req);
+  const googleApiKey = getGoogleAPIKey(req);
+
   const body = await req.json();
   const {
     documentId,
@@ -234,11 +248,19 @@ export async function POST(req: NextRequest) {
     persona = 'sachlich',
     ttsChunkSize = 4000,
   } = body;
-  
+
   console.log(`Document ID: ${documentId}, Model: ${model}`);
 
   if (!documentId) {
     return NextResponse.json({ message: 'Missing documentId' }, { status: 400 });
+  }
+
+  // Check if we have the necessary API keys based on the model
+  if (model.startsWith('gpt-') && !openaiApiKey) {
+    return NextResponse.json({ message: 'OpenAI API key required for this model. Please add your API key in Settings.' }, { status: 401 });
+  }
+  if (model.startsWith('gemini-') && !googleApiKey) {
+    return NextResponse.json({ message: 'Google API key required for this model. Please add your API key in Settings.' }, { status: 401 });
   }
 
   try {
@@ -283,13 +305,15 @@ export async function POST(req: NextRequest) {
         persona,
         targetWords: approxWords,
         minutes,
+        openaiApiKey,
+        googleApiKey,
       });
       console.log(`Script generated successfully, length: ${script.length}`);
     } catch (scriptError) {
       console.error('Failed to generate podcast script with primary model, trying fallback...', scriptError);
 
       try {
-        if (model !== 'gpt-4o-mini') {
+        if (model !== 'gpt-4o-mini' && openaiApiKey) {
           console.log('Attempting fallback to gpt-4o-mini...');
           script = await generatePodcastScript({
             model: 'gpt-4o-mini',
@@ -297,6 +321,8 @@ export async function POST(req: NextRequest) {
             persona,
             targetWords: approxWords,
             minutes,
+            openaiApiKey,
+            googleApiKey,
           });
         } else {
           throw scriptError;
@@ -319,6 +345,7 @@ export async function POST(req: NextRequest) {
         text: chunk,
         voice: voice,
         model: model,
+        openaiApiKey,
       });
       buffers.push(buffer);
     }

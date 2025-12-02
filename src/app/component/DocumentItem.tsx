@@ -101,7 +101,7 @@ export default function DocumentItem({ document, folders, podcastUrl }: Document
         )}
       </div>
       <div className='flex items-center gap-2 sm:justify-end'>
-        <CreatePodcastButton documentId={document.documentId} initialUrl={podcastUrl ?? undefined} />
+        <CreatePodcastButton documentId={document.documentId} initialUrl={podcastUrl ?? undefined} documentTitle={document.name} />
         <a
           href={`/doc/${document.documentId}/chat`}
           target='_blank'

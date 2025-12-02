@@ -1,0 +1,272 @@
+"use client";
+
+import { useEffect, useRef, useState } from 'react';
+import { Play, Pause, SkipBack, SkipForward, X, Volume2, VolumeX, ChevronLeft, ChevronRight } from 'lucide-react';
+import { usePodcastMode } from './PodcastModeProvider';
+
+export default function PodcastPlayer() {
+  const { currentPodcast, setCurrentPodcast, isPlaying, setIsPlaying, playlist, playNext, playPrevious } = usePodcastMode();
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+
+  // Reset time when podcast changes
+  useEffect(() => {
+    setCurrentTime(0);
+    setDuration(0);
+    const audio = audioRef.current;
+    if (audio) {
+      audio.currentTime = 0;
+    }
+  }, [currentPodcast?.url]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateTime = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    const updateDuration = () => {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        console.log('Duration updated:', audio.duration);
+        setDuration(audio.duration);
+      }
+    };
+
+    const handleEnded = () => {
+      console.log('Podcast ended, playlist length:', playlist.length);
+      setIsPlaying(false);
+
+      // Auto-play next podcast if available
+      if (currentPodcast && playlist.length > 1) {
+        const currentIndex = playlist.findIndex((p) => p.documentId === currentPodcast.documentId);
+        console.log('Current index:', currentIndex, 'of', playlist.length - 1);
+
+        if (currentIndex !== -1 && currentIndex < playlist.length - 1) {
+          console.log('Auto-playing next podcast');
+          setTimeout(() => {
+            playNext();
+          }, 500);
+        }
+      }
+    };
+
+    const handleLoadStart = () => {
+      console.log('Audio load started');
+    };
+
+    const handleCanPlay = () => {
+      console.log('Audio can play, duration:', audio.duration);
+      updateDuration();
+    };
+
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('durationchange', updateDuration);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('canplaythrough', updateDuration);
+
+    // Force load
+    audio.load();
+
+    return () => {
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('durationchange', updateDuration);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('canplaythrough', updateDuration);
+    };
+  }, [setIsPlaying, currentPodcast?.url]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.play().catch(console.error);
+      } else {
+        audioRef.current.pause();
+      }
+    }
+  }, [isPlaying]);
+
+  // Handle auto-play when podcast changes
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !isPlaying) return;
+
+    const handleCanPlayAutoPlay = () => {
+      console.log('Audio ready for auto-play');
+      audio.play().catch(console.error);
+    };
+
+    audio.addEventListener('canplay', handleCanPlayAutoPlay, { once: true });
+
+    return () => {
+      audio.removeEventListener('canplay', handleCanPlayAutoPlay);
+    };
+  }, [currentPodcast?.url, isPlaying]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
+
+  if (!currentPodcast) return null;
+
+  const togglePlayPause = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const time = parseFloat(e.target.value);
+    if (audioRef.current && !isNaN(time)) {
+      audioRef.current.currentTime = time;
+      setCurrentTime(time);
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const vol = parseFloat(e.target.value);
+    setVolume(vol);
+    setIsMuted(false);
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+  };
+
+  const skip = (seconds: number) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const currentDuration = audio.duration;
+    if (!currentDuration || isNaN(currentDuration)) return;
+
+    const newTime = Math.max(0, Math.min(currentDuration, audio.currentTime + seconds));
+    audio.currentTime = newTime;
+  };
+
+  const formatTime = (time: number) => {
+    if (!isFinite(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <>
+      <audio
+        ref={audioRef}
+        src={currentPodcast.url}
+        preload="metadata"
+        crossOrigin="anonymous"
+      />
+
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 text-white shadow-2xl border-t border-emerald-900/50">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          {/* Progress Bar */}
+          <div className="mb-2">
+            <input
+              type="range"
+              min={0}
+              max={duration || 0}
+              value={currentTime}
+              onChange={handleSeek}
+              className="w-full h-1 bg-emerald-900/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0"
+            />
+            <div className="flex justify-between text-xs text-emerald-100 mt-1">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center justify-between gap-4">
+            {/* Title */}
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-sm truncate">{currentPodcast.title}</h3>
+              <p className="text-xs text-emerald-100">Podcast</p>
+            </div>
+
+            {/* Playback Controls */}
+            <div className="flex items-center gap-1">
+              {playlist.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Previous clicked');
+                    playPrevious();
+                  }}
+                  disabled={!currentPodcast || playlist.findIndex((p) => p.documentId === currentPodcast.documentId) === 0}
+                  className="p-2 hover:bg-emerald-600 rounded-full transition disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Vorheriger Podcast"
+                >
+                  <SkipBack className="h-5 w-5" />
+                </button>
+              )}
+
+              <button
+                onClick={togglePlayPause}
+                className="p-3 bg-white text-emerald-700 hover:bg-emerald-50 rounded-full transition"
+                title={isPlaying ? 'Pause' : 'Play'}
+              >
+                {isPlaying ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 ml-0.5" />}
+              </button>
+
+              {playlist.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Next clicked, playlist:', playlist.length);
+                    playNext();
+                  }}
+                  disabled={!currentPodcast || playlist.findIndex((p) => p.documentId === currentPodcast.documentId) === playlist.length - 1}
+                  className="p-2 hover:bg-emerald-600 rounded-full transition disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="Nächster Podcast"
+                >
+                  <SkipForward className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+
+            {/* Volume & Close */}
+            <div className="flex items-center gap-3">
+              <div className="hidden sm:flex items-center gap-2">
+                <button onClick={toggleMute} className="p-1 hover:bg-emerald-600 rounded transition">
+                  {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={isMuted ? 0 : volume}
+                  onChange={handleVolumeChange}
+                  className="w-20 h-1 bg-emerald-900/50 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-0"
+                />
+              </div>
+
+              <button
+                onClick={() => setCurrentPodcast(null)}
+                className="p-2 hover:bg-emerald-600 rounded-full transition"
+                title="Schließen"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}

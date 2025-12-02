@@ -8,6 +8,7 @@ import UploadDocuments from './component/UploadDocuments';
 import CreateFolderButton from './component/CreateFolderButton';
 import DocumentItem from './component/DocumentItem';
 import FolderItem from './component/FolderItem';
+import PlaylistInitializer from './component/PlaylistInitializer';
 
 const DOCUMENT_PREFIX = 'documents/';
 
@@ -155,9 +156,40 @@ const Home = async () => {
     }
   }
 
+  // Create ordered playlist: folders first (in order), then root documents
+  const orderedPlaylist: Array<{ documentId: string; title: string; url: string }> = [];
+
+  // Add all documents from folders first
+  folders.forEach((folderName) => {
+    const folderDocs = documentsByFolder[folderName] || [];
+    folderDocs.forEach((doc) => {
+      const podcastUrl = podcastMap[doc.documentId];
+      if (podcastUrl) {
+        orderedPlaylist.push({
+          documentId: doc.documentId,
+          title: doc.name,
+          url: podcastUrl,
+        });
+      }
+    });
+  });
+
+  // Then add root documents
+  rootDocuments.forEach((doc) => {
+    const podcastUrl = podcastMap[doc.documentId];
+    if (podcastUrl) {
+      orderedPlaylist.push({
+        documentId: doc.documentId,
+        title: doc.name,
+        url: podcastUrl,
+      });
+    }
+  });
+
   return (
     <div className='min-h-screen bg-gray-50'>
       <NavBar />
+      <PlaylistInitializer items={orderedPlaylist} />
 
       <div className='max-w-5xl mx-auto p-8'>
         <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
