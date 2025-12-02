@@ -93,14 +93,14 @@ export default function DocumentItem({ document, folders, podcastUrl }: Document
   };
 
   return (
-    <li className='flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between relative'>
+    <li className='flex flex-col gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2.5 sm:px-4 sm:py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between relative'>
       <div className='flex flex-col sm:flex-1'>
-        <span className='font-medium text-gray-800 truncate'>{document.name}</span>
+        <span className='font-medium text-sm sm:text-base text-gray-800 truncate'>{document.name}</span>
         {hasFolder && (
-          <span className='text-xs text-gray-500 mt-1'>Ordner: {document.folder}</span>
+          <span className='text-xs text-gray-500 mt-0.5 sm:mt-1'>Ordner: {document.folder}</span>
         )}
       </div>
-      <div className='flex items-center gap-2 sm:justify-end'>
+      <div className='flex items-center gap-1.5 sm:gap-2 sm:justify-end flex-wrap'>
         <CreatePodcastButton documentId={document.documentId} initialUrl={podcastUrl ?? undefined} documentTitle={document.name} />
         <a
           href={`/doc/${document.documentId}/chat`}
@@ -108,31 +108,31 @@ export default function DocumentItem({ document, folders, podcastUrl }: Document
           rel='noopener noreferrer'
           title='Ansehen'
           aria-label='Ansehen'
-          className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-indigo-700 shadow ring-1 ring-indigo-200 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400'
+          className='inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white text-indigo-700 shadow ring-1 ring-indigo-200 hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-400 active:bg-indigo-100'
         >
-          <Eye className='h-4 w-4' />
+          <Eye className='h-3.5 w-3.5 sm:h-4 sm:w-4' />
         </a>
         <button
           onClick={handleOpenMoveModal}
           title={hasFolder ? 'Ordner wechseln' : 'Ordner auswählen'}
           aria-label={hasFolder ? 'Ordner wechseln' : 'Ordner auswählen'}
-          className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-700 shadow ring-1 ring-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400'
+          className='inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white text-gray-700 shadow ring-1 ring-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 active:bg-gray-100'
         >
-          <FolderOpen className='h-4 w-4' />
+          <FolderOpen className='h-3.5 w-3.5 sm:h-4 sm:w-4' />
         </button>
         <button
           onClick={handleDelete}
           title='Löschen'
           aria-label='Löschen'
-          className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-red-600 shadow ring-1 ring-red-200 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400'
+          className='inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white text-red-600 shadow ring-1 ring-red-200 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 active:bg-red-100'
         >
-          <Trash2 className='h-4 w-4' />
+          <Trash2 className='h-3.5 w-3.5 sm:h-4 sm:w-4' />
         </button>
       </div>
       {isMoveModalOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Dokument einem Ordner hinzufügen</h2>
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-4 sm:p-6 shadow-xl">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4">Dokument einem Ordner hinzufügen</h2>
             <label htmlFor={`folder-select-${document.documentId}`} className="block text-sm font-medium text-gray-700 mb-2">
               Ordner auswählen
             </label>

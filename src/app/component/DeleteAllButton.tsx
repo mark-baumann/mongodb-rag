@@ -32,9 +32,9 @@ export default function DeleteAllButton() {
       onClick={handleDelete}
       title='Alle löschen'
       aria-label='Alle löschen'
-      className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-red-600 shadow ring-1 ring-red-200 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400'
+      className='inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white text-red-600 shadow ring-1 ring-red-200 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 active:bg-red-100'
     >
-      <Trash2 className='h-4 w-4' />
+      <Trash2 className='h-3.5 w-3.5 sm:h-4 sm:w-4' />
     </button>
   );
 }

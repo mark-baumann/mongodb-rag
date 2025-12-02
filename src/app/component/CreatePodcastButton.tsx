@@ -197,33 +197,33 @@ export default function CreatePodcastButton({ documentId, initialUrl, documentTi
 
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2">
         <button
           type="button"
           onClick={openDialog}
           disabled={isCreating}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-emerald-700 shadow ring-1 ring-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white text-emerald-700 shadow ring-1 ring-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 disabled:cursor-not-allowed disabled:opacity-60 active:bg-emerald-100"
           title="Podcast"
           aria-label="Podcast erstellen"
         >
-          {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mic className="h-4 w-4" />}
+          {isCreating ? <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" /> : <Mic className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
         </button>
         {existingUrl && (
           <button
             type="button"
             onClick={openPlayer}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-emerald-700 shadow ring-1 ring-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            className="inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white text-emerald-700 shadow ring-1 ring-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:bg-emerald-100"
             title="Podcast abspielen"
             aria-label="Podcast abspielen"
           >
-            <Play className="h-4 w-4" />
+            <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </button>
         )}
       </div>
 
       {isDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 text-gray-800 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-4 sm:p-6 text-gray-800 shadow-xl max-h-[90vh] overflow-y-auto">
             <h2 className="mb-4 text-xl font-bold">Podcast erstellen</h2>
 
             <div className="space-y-4">
