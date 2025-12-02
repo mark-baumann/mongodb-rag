@@ -198,7 +198,7 @@ export default function PodcastPlayer() {
           </div>
 
           {/* Controls - Shifted right on mobile */}
-          <div className="flex items-center justify-center gap-2 sm:gap-3 pr-10 sm:pr-12 ml-6 sm:ml-0">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 pr-10 sm:pr-12 ml-6 sm:ml-0 -mt-1 sm:mt-0">
             {/* Playback Controls */}
             <div className="flex items-center justify-center gap-2 sm:gap-3">
               {playlist.length > 1 && (
