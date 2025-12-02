@@ -14,6 +14,20 @@ export default function UploadDocuments() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingPodcast, setIsGeneratingPodcast] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/status');
+        const data = await response.json();
+        setIsAuthenticated(!!data?.authenticated);
+      } catch (error) {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -42,6 +56,10 @@ export default function UploadDocuments() {
   };
 
   const handleButtonClick = () => {
+    if (!isAuthenticated) {
+      toast.error('Bitte zuerst einloggen');
+      return;
+    }
     resetProgress();
     fileInputRef.current?.click();
   };
@@ -171,6 +189,10 @@ export default function UploadDocuments() {
       xhr.onerror = () => reject(new Error('Network error during upload'));
       xhr.send(formData);
     });
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <>

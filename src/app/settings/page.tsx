@@ -58,9 +58,11 @@ export default function SettingsPage() {
             const envKeys = await envKeysResponse.json();
             if (envKeys.openaiKey) {
               setDraftKey(envKeys.openaiKey);
+              setApiKey(envKeys.openaiKey);
             }
             if (envKeys.googleKey) {
               setDraftGoogleKey(envKeys.googleKey);
+              setGoogleApiKey(envKeys.googleKey);
             }
           }
         }
@@ -77,12 +79,7 @@ export default function SettingsPage() {
 
 
   const handleSaveAll = () => {
-    // Persist API keys and podcast config
-    if (!isAuthed) {
-      // Only save if not authenticated (otherwise use ENV keys)
-      setApiKey(draftKey.trim());
-      setGoogleApiKey(draftGoogleKey.trim());
-    }
+    // Persist podcast config only
     setPodcastConfig(draftPodcastConfig);
     setSaveMessage('Einstellungen gespeichert');
     setTimeout(() => setSaveMessage(''), 2000);
@@ -113,9 +110,11 @@ export default function SettingsPage() {
         const envKeys = await envKeysResponse.json();
         if (envKeys.openaiKey) {
           setDraftKey(envKeys.openaiKey);
+          setApiKey(envKeys.openaiKey);
         }
         if (envKeys.googleKey) {
           setDraftGoogleKey(envKeys.googleKey);
+          setGoogleApiKey(envKeys.googleKey);
         }
       }
     } catch (error) {
@@ -153,6 +152,10 @@ export default function SettingsPage() {
     setAuthMessage('');
     await fetch('/api/auth/logout', { method: 'POST' });
     setIsAuthed(false);
+    setDraftKey('');
+    setDraftGoogleKey('');
+    setApiKey('');
+    setGoogleApiKey('');
     setAuthMessage('Abgemeldet.');
   };
 
@@ -162,12 +165,9 @@ export default function SettingsPage() {
     setTimeout(() => setAuthMessage(''), 2000);
   };
 
-  const apiKeyHint = useMemo(() => (apiKey ? 'Ein OpenAI API-Key ist hinterlegt.' : 'Kein OpenAI API-Key gespeichert.'), [apiKey]);
-  const googleApiKeyHint = useMemo(() => (googleApiKey ? 'Ein Google API-Key ist hinterlegt.' : 'Kein Google API-Key gespeichert.'), [googleApiKey]);
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 to-white">
-      <header className="border-b bg-white/70 backdrop-blur">
+      <header className="border-b bg-white/70 backdrop-blur pt-8 sm:pt-0">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <Link href="/" className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700 hover:text-emerald-800">
@@ -190,70 +190,6 @@ export default function SettingsPage() {
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {/* OpenAI API Key */}
-          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-2">
-              <Wand2 className="h-5 w-5 text-emerald-600" />
-              <h2 className="text-lg font-semibold text-gray-900">OpenAI API‑Key (ChatGPT)</h2>
-            </div>
-            <p className="mb-4 text-sm text-gray-600">
-              {isAuthed ? 'Geladen aus ENV' : 'Wird nur lokal im Browser gespeichert. Funktioniert auch ohne Login.'}
-            </p>
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  placeholder="sk-..."
-                  value={draftKey}
-                  onChange={(e) => setDraftKey(e.target.value)}
-                  disabled={isAuthed}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                />
-                {!isAuthed && (
-                  <button
-                    onClick={handleSaveAll}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                  >
-                    Speichern
-                  </button>
-                )}
-              </div>
-              <p className="text-xs text-gray-500">{saveMessage || apiKeyHint}</p>
-            </div>
-          </section>
-
-          {/* Google API Key */}
-          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-2">
-              <Wand2 className="h-5 w-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Google API‑Key (Gemini)</h2>
-            </div>
-            <p className="mb-4 text-sm text-gray-600">
-              {isAuthed ? 'Geladen aus ENV' : 'Wird nur lokal im Browser gespeichert. Funktioniert auch ohne Login.'}
-            </p>
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <input
-                  type="password"
-                  placeholder="AIza..."
-                  value={draftGoogleKey}
-                  onChange={(e) => setDraftGoogleKey(e.target.value)}
-                  disabled={isAuthed}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                />
-                {!isAuthed && (
-                  <button
-                    onClick={handleSaveAll}
-                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                  >
-                    Speichern
-                  </button>
-                )}
-              </div>
-              <p className="text-xs text-gray-500">{saveMessage || googleApiKeyHint}</p>
-            </div>
-          </section>
-
           {/* Master Password */}
           <section className="md:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
@@ -308,120 +244,122 @@ export default function SettingsPage() {
             )}
           </section>
 
-          {/* Podcast Auto-Generate Configuration */}
-          <section className="md:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-2">
-              <SlidersHorizontal className="h-5 w-5 text-emerald-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Podcast Auto-Generate</h2>
-            </div>
-            <p className="mb-4 text-sm text-gray-600">
-              Aktiviere die automatische Podcast-Generierung beim Upload von PDFs.
-            </p>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <input
-                  id="autoGenerate"
-                  type="checkbox"
-                  checked={draftPodcastConfig.autoGenerate}
-                  onChange={(e) =>
-                    setDraftPodcastConfig({ ...draftPodcastConfig, autoGenerate: e.target.checked })
-                  }
-                  className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
-                />
-                <label htmlFor="autoGenerate" className="text-sm font-medium text-gray-700">
-                  Automatisch Podcast erstellen bei PDF-Upload
-                </label>
+          {/* Podcast Auto-Generate Configuration - Only when authenticated */}
+          {isAuthed && (
+            <section className="md:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+              <div className="mb-4 flex items-center gap-2">
+                <SlidersHorizontal className="h-5 w-5 text-emerald-600" />
+                <h2 className="text-lg font-semibold text-gray-900">Podcast Auto-Generate</h2>
               </div>
-
-              {draftPodcastConfig.autoGenerate && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-7">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Modell</label>
-                    <select
-                      value={draftPodcastConfig.model}
-                      onChange={(e) =>
-                        setDraftPodcastConfig({ ...draftPodcastConfig, model: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
-                    >
-                      <option value="gpt-4o">ChatGPT 4o</option>
-                      <option value="gpt-4o-mini">ChatGPT 4o Mini</option>
-                      <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                      <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                      <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Stimme</label>
-                    <select
-                      value={draftPodcastConfig.voice}
-                      onChange={(e) =>
-                        setDraftPodcastConfig({ ...draftPodcastConfig, voice: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
-                    >
-                      <option value="alloy">Alloy</option>
-                      <option value="echo">Echo</option>
-                      <option value="fable">Fable</option>
-                      <option value="onyx">Onyx</option>
-                      <option value="nova">Nova</option>
-                      <option value="shimmer">Shimmer</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Länge (Minuten): {draftPodcastConfig.targetMinutes}
-                    </label>
-                    <input
-                      type="range"
-                      min={1}
-                      max={15}
-                      step={0.5}
-                      value={draftPodcastConfig.targetMinutes}
-                      onChange={(e) =>
-                        setDraftPodcastConfig({
-                          ...draftPodcastConfig,
-                          targetMinutes: parseFloat(e.target.value),
-                        })
-                      }
-                      className="w-full"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Stil</label>
-                    <select
-                      value={draftPodcastConfig.persona}
-                      onChange={(e) =>
-                        setDraftPodcastConfig({ ...draftPodcastConfig, persona: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
-                    >
-                      <option value="sachlich">Sachlich</option>
-                      <option value="erklärend">Erklärend</option>
-                      <option value="freundlich">Freundlich</option>
-                      <option value="analytisch">Analytisch</option>
-                      <option value="humorvoll">Humorvoll</option>
-                      <option value="motivierend">Motivierend</option>
-                      <option value="erzählerisch">Erzählerisch</option>
-                      <option value="technisch">Technisch</option>
-                    </select>
-                  </div>
+              <p className="mb-4 text-sm text-gray-600">
+                Aktiviere die automatische Podcast-Generierung beim Upload von PDFs.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <input
+                    id="autoGenerate"
+                    type="checkbox"
+                    checked={draftPodcastConfig.autoGenerate}
+                    onChange={(e) =>
+                      setDraftPodcastConfig({ ...draftPodcastConfig, autoGenerate: e.target.checked })
+                    }
+                    className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="autoGenerate" className="text-sm font-medium text-gray-700">
+                    Automatisch Podcast erstellen bei PDF-Upload
+                  </label>
                 </div>
-              )}
 
-              <div className="flex justify-end">
-                <button
-                  onClick={handleSaveAll}
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                >
-                  Konfiguration speichern
-                </button>
+                {draftPodcastConfig.autoGenerate && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pl-7">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Modell</label>
+                      <select
+                        value={draftPodcastConfig.model}
+                        onChange={(e) =>
+                          setDraftPodcastConfig({ ...draftPodcastConfig, model: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                      >
+                        <option value="gpt-4o">ChatGPT 4o</option>
+                        <option value="gpt-4o-mini">ChatGPT 4o Mini</option>
+                        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                        <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                        <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Stimme</label>
+                      <select
+                        value={draftPodcastConfig.voice}
+                        onChange={(e) =>
+                          setDraftPodcastConfig({ ...draftPodcastConfig, voice: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                      >
+                        <option value="alloy">Alloy</option>
+                        <option value="echo">Echo</option>
+                        <option value="fable">Fable</option>
+                        <option value="onyx">Onyx</option>
+                        <option value="nova">Nova</option>
+                        <option value="shimmer">Shimmer</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Länge (Minuten): {draftPodcastConfig.targetMinutes}
+                      </label>
+                      <input
+                        type="range"
+                        min={1}
+                        max={15}
+                        step={0.5}
+                        value={draftPodcastConfig.targetMinutes}
+                        onChange={(e) =>
+                          setDraftPodcastConfig({
+                            ...draftPodcastConfig,
+                            targetMinutes: parseFloat(e.target.value),
+                          })
+                        }
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Stil</label>
+                      <select
+                        value={draftPodcastConfig.persona}
+                        onChange={(e) =>
+                          setDraftPodcastConfig({ ...draftPodcastConfig, persona: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900"
+                      >
+                        <option value="sachlich">Sachlich</option>
+                        <option value="erklärend">Erklärend</option>
+                        <option value="freundlich">Freundlich</option>
+                        <option value="analytisch">Analytisch</option>
+                        <option value="humorvoll">Humorvoll</option>
+                        <option value="motivierend">Motivierend</option>
+                        <option value="erzählerisch">Erzählerisch</option>
+                        <option value="technisch">Technisch</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleSaveAll}
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                  >
+                    Konfiguration speichern
+                  </button>
+                </div>
               </div>
-            </div>
-          </section>
+            </section>
+          )}
 
 
 
