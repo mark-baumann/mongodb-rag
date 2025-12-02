@@ -197,14 +197,9 @@ export default function PodcastPlayer() {
             </div>
           </div>
 
-          {/* Controls - Centered Layout on Mobile */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 pr-10 sm:pr-12">
-            {/* Title - Above controls on mobile, left on desktop */}
-            <div className="w-full sm:flex-1 sm:min-w-0 text-center sm:text-left">
-              <h3 className="font-semibold text-xs sm:text-sm truncate">{currentPodcast.title}</h3>
-            </div>
-
-            {/* Playback Controls - Centered */}
+          {/* Controls - Centered */}
+          <div className="flex items-center justify-center gap-2 sm:gap-3 pr-10 sm:pr-12">
+            {/* Playback Controls */}
             <div className="flex items-center justify-center gap-2 sm:gap-3">
               {playlist.length > 1 && (
                 <button
