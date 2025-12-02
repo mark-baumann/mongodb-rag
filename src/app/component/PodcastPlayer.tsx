@@ -170,8 +170,8 @@ export default function PodcastPlayer() {
         crossOrigin="anonymous"
       />
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 text-white shadow-2xl border-t border-emerald-900/50 pb-safe">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-3 pb-2 sm:py-3 relative">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-gradient-to-r from-emerald-800 via-emerald-700 to-emerald-600 text-white shadow-2xl border-t border-emerald-900/50">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 pt-4 pb-8 sm:py-3 relative">
           {/* Close Button - Top Right */}
           <button
             onClick={() => setCurrentPodcast(null)}
