@@ -7,8 +7,12 @@ const DOCUMENT_PREFIX = 'documents/';
 
 export async function POST(request: Request) {
   try {
+    // Allow requests from localhost (for development/scripts)
+    const host = request.headers.get('host') || '';
+    const isLocalhost = host.includes('localhost') || host.includes('127.0.0.1');
+
     const authed = cookies().get('auth')?.value === '1';
-    if (!authed) {
+    if (!authed && !isLocalhost) {
       return new NextResponse(
         JSON.stringify({ message: 'Unauthorized' }),
         { status: 401, headers: { 'Content-Type': 'application/json' } },
