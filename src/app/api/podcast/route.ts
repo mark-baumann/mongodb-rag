@@ -46,18 +46,31 @@ function buildPodcastPrompt(params: {
   persona: string;
   targetWords: number;
   minutes: number;
+  complexity: number;
 }): string {
-  const { context, persona, targetWords, minutes } = params;
+  const { context, persona, targetWords, minutes, complexity } = params;
+
+  const complexityLevels = {
+    1: "Sehr einfach: Verwende einfachste Sprache, vermeide jegliche Fachbegriffe, erkläre wie für Anfänger oder Kinder. Nutze viele alltägliche Vergleiche und sehr einfache Beispiele.",
+    2: "Einfach: Nutze klare, verständliche Sprache. Wenn Fachbegriffe nötig sind, erkläre sie sofort in einfachen Worten. Verwende anschauliche Beispiele.",
+    3: "Mittel: Ausgewogene Mischung aus Verständlichkeit und Fachlichkeit. Fachbegriffe sind erlaubt, sollten aber im Kontext erklärt werden. Zielgruppe: Interessierte Laien.",
+    4: "Fortgeschritten: Verwende Fachsprache für ein Publikum mit Vorkenntnissen. Grundlegende Konzepte müssen nicht mehr erklärt werden. Zielgruppe: Fortgeschrittene.",
+    5: "Komplex/Experte: Nutze präzise Fachterminologie ohne Vereinfachungen. Setze tiefes Verständnis voraus. Gehe in die Tiefe. Zielgruppe: Experten."
+  };
+
+  const complexityInstruction = complexityLevels[complexity as keyof typeof complexityLevels] || complexityLevels[3];
 
   return `Du bist ein professioneller deutschsprachiger Podcast-Autor mit jahrelanger Erfahrung in der Erstellung fesselnder Audio-Inhalte.
 
 AUFGABE: Erstelle ein natürlich klingendes, gesprochenes Podcast-Skript auf Deutsch.
 
+KOMPLEXITÄTSSTUFE: ${complexityInstruction}
+
 QUALITÄTSANFORDERUNGEN:
 - Verwende einen gesprächigen, authentischen Ton - als würdest du direkt mit dem Hörer sprechen
 - Baue eine klare Struktur auf: Einstieg → Hauptteil → Zusammenfassung
 - Nutze rhetorische Fragen, um den Hörer einzubeziehen
-- Verwende konkrete Beispiele und Analogien, um komplexe Konzepte zu erklären
+- Verwende konkrete Beispiele und Analogien, um komplexe Konzepte zu erklären (angepasst an die Komplexitätsstufe)
 - Variiere Satzlänge und -struktur für natürlichen Sprachfluss
 - Füge gelegentlich Übergänge ein ("Schauen wir uns das genauer an...", "Interessant ist auch...")
 
@@ -83,11 +96,12 @@ async function generatePodcastScript(params: {
   persona: string;
   targetWords: number;
   minutes: number;
+  complexity: number;
   openaiApiKey: string;
   googleApiKey: string;
 }): Promise<string> {
-  const { model, context, persona, targetWords, minutes, openaiApiKey, googleApiKey } = params;
-  const prompt = buildPodcastPrompt({ context, persona, targetWords, minutes });
+  const { model, context, persona, targetWords, minutes, complexity, openaiApiKey, googleApiKey } = params;
+  const prompt = buildPodcastPrompt({ context, persona, targetWords, minutes, complexity });
 
   console.log(`Generating podcast script with model request: ${model}`);
 
@@ -247,6 +261,7 @@ export async function POST(req: NextRequest) {
     voice = 'alloy',
     persona = 'sachlich',
     ttsChunkSize = 4000,
+    complexity = 3,
   } = body;
 
   console.log(`Document ID: ${documentId}, Model: ${model}`);
@@ -305,6 +320,7 @@ export async function POST(req: NextRequest) {
         persona,
         targetWords: approxWords,
         minutes,
+        complexity: typeof complexity === 'number' && complexity >= 1 && complexity <= 5 ? complexity : 3,
         openaiApiKey,
         googleApiKey,
       });
@@ -321,6 +337,7 @@ export async function POST(req: NextRequest) {
             persona,
             targetWords: approxWords,
             minutes,
+            complexity: typeof complexity === 'number' && complexity >= 1 && complexity <= 5 ? complexity : 3,
             openaiApiKey,
             googleApiKey,
           });

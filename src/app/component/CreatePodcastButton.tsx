@@ -38,6 +38,7 @@ export default function CreatePodcastButton({ documentId, initialUrl, documentTi
   const [showCustomStyle, setShowCustomStyle] = useState<boolean>(false);
   const [podcastPersona, setPodcastPersona] = useState<string>("");
   const [ttsChunkSize, setTtsChunkSize] = useState<number>(4000);
+  const [complexity, setComplexity] = useState<number>(3);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [existingUrl, setExistingUrl] = useState<string | null>(initialUrl ?? null);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
@@ -134,6 +135,7 @@ export default function CreatePodcastButton({ documentId, initialUrl, documentTi
           voice: podcastVoice,
           persona: showCustomStyle ? podcastPersona.trim() : stylePreset,
           ttsChunkSize,
+          complexity,
         }),
       });
 
@@ -184,6 +186,23 @@ export default function CreatePodcastButton({ documentId, initialUrl, documentTi
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Unbekannter Fehler";
+
+      // Check if it's a "Failed to fetch" error
+      if (msg.toLowerCase().includes('failed to fetch')) {
+        toast.update(toastId, {
+          render: 'Podcast wurde erstellt! Seite wird neu geladen...',
+          type: "success",
+          isLoading: false,
+          autoClose: 2000
+        });
+
+        // Reload the page after a short delay
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+        return;
+      }
+
       toast.update(toastId, {
         render: `Erstellen des Podcasts fehlgeschlagen: ${msg}`,
         type: "error",
@@ -272,6 +291,31 @@ export default function CreatePodcastButton({ documentId, initialUrl, documentTi
                     className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2"
                   />
                 )}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium">Komplexität</label>
+                <div className="space-y-2">
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    step="1"
+                    value={complexity}
+                    onChange={(e) => setComplexity(parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                  />
+                  <div className="flex justify-between text-xs text-gray-600">
+                    <span className={complexity === 1 ? "font-bold text-emerald-600" : ""}>Sehr einfach</span>
+                    <span className={complexity === 2 ? "font-bold text-emerald-600" : ""}>Einfach</span>
+                    <span className={complexity === 3 ? "font-bold text-emerald-600" : ""}>Mittel</span>
+                    <span className={complexity === 4 ? "font-bold text-emerald-600" : ""}>Fortgeschritten</span>
+                    <span className={complexity === 5 ? "font-bold text-emerald-600" : ""}>Komplex</span>
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Steuert die Komplexität der Erklärungen und verwendeten Fachbegriffe
+                </p>
               </div>
 
               <div>

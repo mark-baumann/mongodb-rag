@@ -9,7 +9,7 @@ const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 async function login() {
     var _a, _b;
-    const browser = await playwright_1.chromium.launch({ headless: false }); // headless: true = unsichtbar
+    const browser = await playwright_1.chromium.launch({ headless: true }); // headless: true = unsichtbar
     const page = await browser.newPage();
     console.log("Oeffne Login-Seite ...");
     await page.goto("https://oc-digital.de", { waitUntil: "domcontentloaded" });

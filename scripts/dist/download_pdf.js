@@ -26,50 +26,57 @@ async function downloadPdfs(page, courseUrl, outputDir, folderName) {
     // Ausgabeordner vorbereiten
     fs_1.default.mkdirSync(outputDir, { recursive: true });
     for (const link of resourceLinks) {
-        console.log(`➡️  Öffne Ressource: ${link}`);
-        await page.goto(link, { waitUntil: "domcontentloaded" });
-        await page.waitForTimeout(2000);
-        // Finde den echten PDF-Link (pluginfile.php…)
-        const pdfLink = await page.evaluate(() => {
-            var _a;
-            const anchors = Array.from(document.querySelectorAll("a"));
-            const match = anchors.find((a) => a.href.includes("pluginfile.php") && a.href.endsWith(".pdf"));
-            return (_a = match === null || match === void 0 ? void 0 : match.href) !== null && _a !== void 0 ? _a : null;
-        });
-        if (!pdfLink) {
-            console.log("⚠️  Kein PDF-Link gefunden, überspringe.");
-            continue;
-        }
-        console.log(`⬇️  Lade herunter: ${pdfLink}`);
-        // Datei herunterladen
-        const pdfResponse = await page.request.get(pdfLink);
-        if (!pdfResponse.ok()) {
-            console.log(`❌ Fehler beim Laden von ${pdfLink}`);
-            continue;
-        }
-        // Dateiname bestimmen
-        const filename = path_1.default.basename(new URL(pdfLink).pathname);
-        const filePath = path_1.default.join(outputDir, filename);
-        fs_1.default.writeFileSync(filePath, await pdfResponse.body());
-        console.log(`✅ Gespeichert: ${filePath}`);
-        // Upload to RAG
-        console.log(`⬆️  Uploading to RAG: ${filePath}`);
-        const form = new form_data_1.default();
-        form.append('file', fs_1.default.createReadStream(filePath), filename);
-        form.append('folderName', folderName);
         try {
-            await axios_1.default.post('http://localhost:3000/api/upload', form, {
-                headers: Object.assign({}, form.getHeaders()),
+            console.log(`➡️  Öffne Ressource: ${link}`);
+            await page.goto(link, { waitUntil: "domcontentloaded" });
+            await page.waitForTimeout(2000);
+            // Finde den echten PDF-Link (pluginfile.php…)
+            const pdfLink = await page.evaluate(() => {
+                var _a;
+                const anchors = Array.from(document.querySelectorAll("a"));
+                const match = anchors.find((a) => a.href.includes("pluginfile.php") && a.href.endsWith(".pdf"));
+                return (_a = match === null || match === void 0 ? void 0 : match.href) !== null && _a !== void 0 ? _a : null;
             });
-            console.log(`✅ Uploaded to RAG: ${filename}`);
+            if (!pdfLink) {
+                console.log("⚠️  Kein PDF-Link gefunden, überspringe.");
+                continue;
+            }
+            console.log(`⬇️  Lade herunter: ${pdfLink}`);
+            // Datei herunterladen
+            const pdfResponse = await page.request.get(pdfLink);
+            if (!pdfResponse.ok()) {
+                console.log(`❌ Fehler beim Laden von ${pdfLink}`);
+                continue;
+            }
+            // Dateiname bestimmen
+            const filename = path_1.default.basename(new URL(pdfLink).pathname);
+            const filePath = path_1.default.join(outputDir, filename);
+            fs_1.default.writeFileSync(filePath, await pdfResponse.body());
+            console.log(`✅ Gespeichert: ${filePath}`);
+            // Upload to RAG
+            console.log(`⬆️  Uploading to RAG: ${filePath}`);
+            const form = new form_data_1.default();
+            form.append('file', fs_1.default.createReadStream(filePath), filename);
+            form.append('folderName', folderName);
+            try {
+                await axios_1.default.post('http://localhost:3000/api/upload', form, {
+                    headers: Object.assign({}, form.getHeaders()),
+                });
+                console.log(`✅ Uploaded to RAG: ${filename}`);
+            }
+            catch (error) {
+                if (axios_1.default.isAxiosError(error)) {
+                    console.error(`❌ Error uploading to RAG: ${filename}`, (_a = error.response) === null || _a === void 0 ? void 0 : _a.data);
+                }
+                else {
+                    console.error(`❌ Error uploading to RAG: ${filename}`, error);
+                }
+            }
         }
         catch (error) {
-            if (axios_1.default.isAxiosError(error)) {
-                console.error(`❌ Error uploading to RAG: ${filename}`, (_a = error.response) === null || _a === void 0 ? void 0 : _a.data);
-            }
-            else {
-                console.error(`❌ Error uploading to RAG: ${filename}`, error);
-            }
+            console.error(`❌ Fehler beim Verarbeiten von ${link}:`, error instanceof Error ? error.message : error);
+            // Continue with next resource
+            continue;
         }
     }
     console.log("🎉 Alle PDFs für diesen Kurs fertig.");
