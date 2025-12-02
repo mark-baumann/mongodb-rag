@@ -191,12 +191,12 @@ export default function SettingsPage() {
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8 pb-8">
         <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2">
           {/* Master Password */}
-          <section className="md:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-4 flex items-center gap-2">
-              <Lock className="h-5 w-5 text-purple-600" />
-              <h2 className="text-lg font-semibold text-gray-900">Master Passwort</h2>
+          <section className="md:col-span-2 rounded-xl sm:rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
+            <div className="mb-3 sm:mb-4 flex items-center gap-2">
+              <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">Master Passwort</h2>
             </div>
-            <p className="mb-4 text-sm text-gray-600">
+            <p className="mb-3 sm:mb-4 text-sm text-gray-600">
               Mit dem Master Passwort werden die API Keys aus den Umgebungsvariablen geladen.
             </p>
             {!isAuthed ? (
@@ -246,12 +246,12 @@ export default function SettingsPage() {
 
           {/* Podcast Auto-Generate Configuration - Only when authenticated */}
           {isAuthed && (
-            <section className="md:col-span-2 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-              <div className="mb-4 flex items-center gap-2">
-                <SlidersHorizontal className="h-5 w-5 text-emerald-600" />
-                <h2 className="text-lg font-semibold text-gray-900">Podcast Auto-Generate</h2>
+            <section className="md:col-span-2 rounded-xl sm:rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
+              <div className="mb-3 sm:mb-4 flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4 sm:h-5 sm:w-5 text-emerald-600" />
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">Podcast Auto-Generate</h2>
               </div>
-              <p className="mb-4 text-sm text-gray-600">
+              <p className="mb-3 sm:mb-4 text-sm text-gray-600">
                 Aktiviere die automatische Podcast-Generierung beim Upload von PDFs.
               </p>
               <div className="space-y-4">

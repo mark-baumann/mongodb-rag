@@ -48,15 +48,15 @@ export default function CreateFolderButton() {
         onClick={() => setIsModalOpen(true)}
         title='Ordner erstellen'
         aria-label='Ordner erstellen'
-        className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-blue-700 shadow ring-1 ring-blue-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400'
+        className='inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white text-blue-700 shadow ring-1 ring-blue-200 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-400 active:bg-blue-100'
       >
-        <FolderPlus className='h-4 w-4' />
+        <FolderPlus className='h-3.5 w-3.5 sm:h-4 sm:w-4' />
       </button>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 shadow-xl w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4 text-gray-800">Neuen Ordner erstellen</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 shadow-xl w-full max-w-md">
+            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 text-gray-800">Neuen Ordner erstellen</h2>
             <input
               type="text"
               value={folderName}

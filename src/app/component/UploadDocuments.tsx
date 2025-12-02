@@ -248,9 +248,9 @@ export default function UploadDocuments() {
         disabled={isUploading || isGeneratingPodcast}
         title={isGeneratingPodcast ? 'Podcast wird generiert...' : 'Dokument hochladen'}
         aria-label='Dokument hochladen'
-        className='inline-flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-900 shadow ring-1 ring-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:cursor-not-allowed disabled:opacity-60'
+        className='inline-flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white text-gray-900 shadow ring-1 ring-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 disabled:cursor-not-allowed disabled:opacity-60 active:bg-gray-100'
       >
-        <Upload className={`h-4 w-4 ${isGeneratingPodcast ? 'animate-pulse' : ''}`} />
+        <Upload className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isGeneratingPodcast ? 'animate-pulse' : ''}`} />
       </button>
     </>
   );
